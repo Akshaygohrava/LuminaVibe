@@ -1,5 +1,7 @@
 package com.luminavibe.services;
 
-interface UserService {
+import com.luminavibe.dtos.UserDto;
 
+public interface UserService {
+    UserDto register(UserDto userDto);
 }
