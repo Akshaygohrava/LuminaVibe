@@ -1,5 +1,6 @@
 package com.luminavibe.dtos;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -27,9 +28,17 @@ public class UserDto {
     @Size(min = 6, max = 255, message = "Password must be at least 6 characters")
     private String password;
 
+    @JsonProperty("full_name")
     private String fullName;
+
     private String bio;
+
+    @JsonProperty("profile_picture_url")
     private String profilePictureUrl;
-    private Boolean isVerified;
-    private Boolean isPrivate;
+
+    @JsonProperty("verified")
+    private Boolean isVerified = false;
+
+    @JsonProperty("private")
+    private Boolean isPrivate = false;
 }
