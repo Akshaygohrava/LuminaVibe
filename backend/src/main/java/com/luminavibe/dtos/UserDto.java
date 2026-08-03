@@ -26,7 +26,9 @@ public class UserDto {
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, max = 255, message = "Password must be at least 6 characters")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+
 
     @JsonProperty("full_name")
     private String fullName;

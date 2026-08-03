@@ -12,7 +12,7 @@ public class LuminavibeApplication {
 		SpringApplication.run(LuminavibeApplication.class, args);
 		
 		System.out.println("LuminaVibe , An Social Media App !");
-		System.out.println("Sucessfully ...");
+		System.out.println("Runs Sucessfully ...");
 	}
 
 	@Bean
