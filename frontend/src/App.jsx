@@ -5,8 +5,7 @@ import './App.css'
 function App() {
   return (
     <>
-      <h1>My Social Media App - LuminaVibe</h1>
-       <LandingPage></LandingPage>
+      <LandingPage></LandingPage>
 
     </>
   )
