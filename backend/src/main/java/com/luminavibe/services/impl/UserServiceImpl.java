@@ -27,6 +27,12 @@ public class UserServiceImpl implements UserService {
         userDto.setPassword(hashedPassword);
 
         User user = modelMapper.map(userDto, User.class);
+        if (user.getIsPrivate() == null) {
+            user.setIsPrivate(false);
+        }
+        if (user.getIsVerified() == null) {
+            user.setIsVerified(false);
+        }
         User savedUser = userRepository.save(user);
 
         return modelMapper.map(savedUser, UserDto.class);

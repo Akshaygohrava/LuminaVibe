@@ -1,14 +1,8 @@
 import { useState } from "react";
-import { z } from "zod";
+import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Sparkles, Check, ArrowRight, Mail, Lock } from "lucide-react";
 import authSide from "../assets/images/socialmedia-register.webp";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
-import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
-
-const signInSchema = z.object({
-  email: z.string().trim().email({ message: "Enter a valid email" }).max(100),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }).max(255),
-});
 
 const inputBase =
   "peer w-full rounded-2xl border border-border bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-foreground backdrop-blur-md outline-none transition-all duration-300 placeholder:text-muted-foreground/60 hover:border-primary/40 hover:bg-white/[0.07] focus:border-primary/70 focus:bg-white/[0.09] focus:shadow-[0_0_0_4px_oklch(0.7_0.19_40/0.14),0_10px_30px_-14px_oklch(0.7_0.19_40/0.6)]";
@@ -51,47 +45,60 @@ function Field({
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
   const [done, setDone] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const raw = Object.fromEntries(new FormData(event.currentTarget));
-    const result = signInSchema.safeParse(raw);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
-    if (!result.success) {
-      const next = {};
-      for (const issue of result.error.issues) next[String(issue.path[0])] = issue.message;
-      setErrors(next);
-      setDone(null);
-      return;
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    setSubmitError(null);
+    setDone(null);
+    try {
+      const response = await fetch("http://localhost:8080/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to sign in. Please check your credentials.");
+      }
+
+      const resData = await response.json();
+      localStorage.setItem("token", resData.token);
+      localStorage.setItem("user", JSON.stringify(resData.user));
+
+      setDone("Successfully signed in!");
+      setTimeout(() => {
+        window.navigateTo("/");
+      }, 1500);
+    } catch (error) {
+      setSubmitError(error.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    setErrors({});
-    setDone("Welcome back — connect a backend to finish signing in.");
   };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background font-sans">
       <title>Sign in to LuminaVibe</title>
       <meta name="description" content="Sign in to LuminaVibe and pick up right where your creator feed left off." />
-      {/* Mobile background image */}
-      <img
-        src={mobileBg}
-        alt=""
-        aria-hidden="true"
-        width={1024}
-        height={1536}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60 lg:hidden"
-      />
-      {/* Laptop/Desktop background image */}
       <img
         src={laptopBg}
         alt=""
         aria-hidden="true"
         width={1920}
         height={1088}
-        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover opacity-70 lg:block"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70"
       />
       <div
         aria-hidden="true"
@@ -187,26 +194,36 @@ export default function SignInPage() {
               Pick up right where your feed left off.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-7 space-y-4" noValidate>
-              <Field label="Email" error={errors["email"]} icon={<Mail className="h-4 w-4" />}>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-4" noValidate>
+              <Field label="Email" error={errors.email?.message} icon={<Mail className="h-4 w-4" />}>
                 <input
-                  name="email"
                   type="email"
-                  maxLength={100}
                   placeholder="you@luminavibe.app"
                   className={inputBase}
                   autoComplete="email"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: "Enter a valid email address",
+                    },
+                  })}
                 />
               </Field>
 
-              <Field label="Password" error={errors["password"]} icon={<Lock className="h-4 w-4" />}>
+              <Field label="Password" error={errors.password?.message} icon={<Lock className="h-4 w-4" />}>
                 <input
-                  name="password"
                   type={showPassword ? "text" : "password"}
-                  maxLength={255}
                   placeholder="At least 8 characters"
                   className={`${inputBase} pr-12`}
                   autoComplete="current-password"
+                  {...register("password", {
+                    required: "Password is required",
+                    pattern: {
+                      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                      message: "Password must contain 8+ characters, with an uppercase, lowercase, number, and special character",
+                    },
+                  })}
                 />
                 <button
                   type="button"
@@ -234,16 +251,23 @@ export default function SignInPage() {
 
               <button
                 type="submit"
-                className="group flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-display text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0"
+                disabled={isLoading}
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-display text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
                 style={{ backgroundImage: "var(--gradient-sunset)", boxShadow: "var(--shadow-glow)" }}
               >
-                Sign in
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                {isLoading ? "Signing in..." : "Sign in"}
+                {!isLoading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
 
               {done ? (
                 <p className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground">
                   {done}
+                </p>
+              ) : null}
+
+              {submitError ? (
+                <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {submitError}
                 </p>
               ) : null}
             </form>

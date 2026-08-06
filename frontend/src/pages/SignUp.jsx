@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { z } from "zod";
+import { useForm } from "react-hook-form";
 import {
   Eye,
   EyeOff,
@@ -15,32 +15,6 @@ import {
 } from "lucide-react";
 import signUpSide from "../assets/images/signup-sideimage.jpeg";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
-import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
-
-const signUpSchema = z.object({
-  full_name: z.string().trim().max(100).optional().or(z.literal("")),
-  username: z
-    .string()
-    .trim()
-    .min(3, { message: "Username must be at least 3 characters" })
-    .max(50)
-    .regex(/^[a-zA-Z0-9._]+$/, { message: "Letters, numbers, dots and underscores only" }),
-  email: z.string().trim().email({ message: "Enter a valid email" }).max(100),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }).max(255),
-  bio: z
-    .string()
-    .trim()
-    .max(300, { message: "Keep your bio under 300 characters" })
-    .optional()
-    .or(z.literal("")),
-  profile_picture_url: z
-    .string()
-    .trim()
-    .url({ message: "Enter a valid image URL" })
-    .max(255)
-    .optional()
-    .or(z.literal("")),
-});
 
 const inputBase =
   "peer w-full rounded-2xl border border-border bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-foreground backdrop-blur-md outline-none transition-all duration-300 placeholder:text-muted-foreground/60 hover:border-primary/40 hover:bg-white/[0.07] focus:border-primary/70 focus:bg-white/[0.09] focus:shadow-[0_0_0_4px_oklch(0.7_0.19_40/0.14),0_10px_30px_-14px_oklch(0.7_0.19_40/0.6)]";
@@ -87,47 +61,56 @@ function Field({
 
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
   const [done, setDone] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const raw = Object.fromEntries(new FormData(event.currentTarget));
-    const result = signUpSchema.safeParse(raw);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
-    if (!result.success) {
-      const next = {};
-      for (const issue of result.error.issues) next[String(issue.path[0])] = issue.message;
-      setErrors(next);
-      setDone(null);
-      return;
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    setSubmitError(null);
+    setDone(null);
+    try {
+      const response = await fetch("http://localhost:8080/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to create account. Please try again.");
+      }
+
+      setDone("Profile ready — redirecting to sign in page...");
+      setTimeout(() => {
+        window.navigateTo("/signin");
+      }, 1500);
+    } catch (error) {
+      setSubmitError(error.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    setErrors({});
-    setDone("Profile ready — connect a backend to save this account.");
   };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background font-sans">
       <title>Create your LuminaVibe account</title>
       <meta name="description" content="Create a LuminaVibe profile: pick a username, add your bio and photo, and start sharing in seconds." />
-      {/* Mobile background image */}
-      <img
-        src={mobileBg}
-        alt=""
-        aria-hidden="true"
-        width={1024}
-        height={1536}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60 lg:hidden"
-      />
-      {/* Laptop/Desktop background image */}
       <img
         src={laptopBg}
         alt=""
         aria-hidden="true"
         width={1920}
         height={1088}
-        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover opacity-70 lg:block"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70"
       />
       <div
         aria-hidden="true"
@@ -225,45 +208,69 @@ export default function SignUpPage() {
               A few details and your profile is live.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-7 space-y-4" noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-4" noValidate>
               <Field
                 label="Full name"
-                hint="optional"
-                error={errors["full_name"]}
+                error={errors.full_name?.message}
                 icon={<User className="h-4 w-4" />}
               >
-                <input name="full_name" maxLength={100} placeholder="Aria Mehta" className={inputBase} />
+                <input
+                  placeholder="Aria Mehta"
+                  className={inputBase}
+                  {...register("full_name", {
+                    required: "Full name is required",
+                  })}
+                />
               </Field>
 
-              <Field label="Username" error={errors["username"]} icon={<AtSign className="h-4 w-4" />}>
+              <Field label="Username" error={errors.username?.message} icon={<AtSign className="h-4 w-4" />}>
                 <input
-                  name="username"
-                  maxLength={50}
                   placeholder="aria.vibes"
                   className={inputBase}
                   autoComplete="username"
+                  {...register("username", {
+                    required: "Username is required",
+                    minLength: {
+                      value: 3,
+                      message: "Username must be at least 3 characters",
+                    },
+                    pattern: {
+                      value: /^[a-zA-Z0-9._]+$/,
+                      message: "Letters, numbers, dots, and underscores only",
+                    },
+                  })}
                 />
               </Field>
 
-              <Field label="Email" error={errors["email"]} icon={<Mail className="h-4 w-4" />}>
+              <Field label="Email" error={errors.email?.message} icon={<Mail className="h-4 w-4" />}>
                 <input
-                  name="email"
                   type="email"
-                  maxLength={100}
                   placeholder="you@luminavibe.app"
                   className={inputBase}
                   autoComplete="email"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: "Enter a valid email address",
+                    },
+                  })}
                 />
               </Field>
 
-              <Field label="Password" error={errors["password"]} icon={<Lock className="h-4 w-4" />}>
+              <Field label="Password" error={errors.password?.message} icon={<Lock className="h-4 w-4" />}>
                 <input
-                  name="password"
                   type={showPassword ? "text" : "password"}
-                  maxLength={255}
                   placeholder="At least 8 characters"
                   className={`${inputBase} pr-12`}
                   autoComplete="new-password"
+                  {...register("password", {
+                    required: "Password is required",
+                    pattern: {
+                      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                      message: "Password must contain 8+ characters, with an uppercase, lowercase, number, and special character",
+                    },
+                  })}
                 />
                 <button
                   type="button"
@@ -277,45 +284,56 @@ export default function SignUpPage() {
 
               <Field
                 label="Bio"
-                hint="optional"
-                error={errors["bio"]}
+                error={errors.bio?.message}
                 icon={<PenLine className="h-4 w-4" />}
               >
                 <textarea
-                  name="bio"
                   rows={3}
-                  maxLength={300}
                   placeholder="Sunset chaser. Film photos & late-night playlists."
                   className={`${inputBase} resize-none`}
+                  {...register("bio", {
+                    required: "Bio is required",
+                  })}
                 />
               </Field>
 
               <Field
                 label="Profile picture URL"
-                hint="optional"
-                error={errors["profile_picture_url"]}
+                error={errors.profile_picture_url?.message}
                 icon={<ImageIcon className="h-4 w-4" />}
               >
                 <input
-                  name="profile_picture_url"
-                  maxLength={255}
                   placeholder="https://…/avatar.jpg"
                   className={inputBase}
+                  {...register("profile_picture_url", {
+                    required: "Profile picture URL is required",
+                    pattern: {
+                      value: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/,
+                      message: "Enter a valid image URL",
+                    },
+                  })}
                 />
               </Field>
 
               <button
                 type="submit"
-                className="group flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-display text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0"
+                disabled={isLoading}
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-display text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
                 style={{ backgroundImage: "var(--gradient-sunset)", boxShadow: "var(--shadow-glow)" }}
               >
-                Create account
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                {isLoading ? "Creating account..." : "Create account"}
+                {!isLoading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
 
               {done ? (
                 <p className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-foreground">
                   {done}
+                </p>
+              ) : null}
+
+              {submitError ? (
+                <p className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {submitError}
                 </p>
               ) : null}
             </form>
