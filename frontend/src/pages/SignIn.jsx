@@ -2,7 +2,8 @@ import { useState } from "react";
 import { z } from "zod";
 import { Eye, EyeOff, Sparkles, Check, ArrowRight, Mail, Lock } from "lucide-react";
 import authSide from "../assets/images/socialmedia-register.webp";
-import authBg from "../assets/images/signinup page.webp";
+import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
+import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
 
 const signInSchema = z.object({
   email: z.string().trim().email({ message: "Enter a valid email" }).max(100),
@@ -74,13 +75,23 @@ export default function SignInPage() {
     <main className="relative min-h-screen overflow-hidden bg-background font-sans">
       <title>Sign in to LuminaVibe</title>
       <meta name="description" content="Sign in to LuminaVibe and pick up right where your creator feed left off." />
+      {/* Mobile background image */}
       <img
-        src={authBg}
+        src={mobileBg}
+        alt=""
+        aria-hidden="true"
+        width={1024}
+        height={1536}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60 lg:hidden"
+      />
+      {/* Laptop/Desktop background image */}
+      <img
+        src={laptopBg}
         alt=""
         aria-hidden="true"
         width={1920}
         height={1088}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70"
+        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover opacity-70 lg:block"
       />
       <div
         aria-hidden="true"

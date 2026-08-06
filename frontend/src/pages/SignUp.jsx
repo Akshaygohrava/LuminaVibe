@@ -13,8 +13,9 @@ import {
   Image as ImageIcon,
   PenLine,
 } from "lucide-react";
-import authSide from "../assets/images/socialmedia-register.webp";
-import authBg from "../assets/images/signinup page.webp";
+import signUpSide from "../assets/images/signup-sideimage.jpeg";
+import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
+import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
 
 const signUpSchema = z.object({
   full_name: z.string().trim().max(100).optional().or(z.literal("")),
@@ -110,13 +111,23 @@ export default function SignUpPage() {
     <main className="relative min-h-screen overflow-hidden bg-background font-sans">
       <title>Create your LuminaVibe account</title>
       <meta name="description" content="Create a LuminaVibe profile: pick a username, add your bio and photo, and start sharing in seconds." />
+      {/* Mobile background image */}
       <img
-        src={authBg}
+        src={mobileBg}
+        alt=""
+        aria-hidden="true"
+        width={1024}
+        height={1536}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60 lg:hidden"
+      />
+      {/* Laptop/Desktop background image */}
+      <img
+        src={laptopBg}
         alt=""
         aria-hidden="true"
         width={1920}
         height={1088}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70"
+        className="pointer-events-none absolute inset-0 hidden h-full w-full object-cover opacity-70 lg:block"
       />
       <div
         aria-hidden="true"
@@ -131,8 +142,8 @@ export default function SignUpPage() {
         <section className="relative hidden overflow-hidden lg:block">
           <div className="absolute inset-6 overflow-hidden rounded-[2rem] border border-white/10">
             <img
-              src={authSide}
-              alt="Collage of LuminaVibe creators sharing photos at golden hour"
+              src={signUpSide}
+              alt="LuminaVibe sign-up layout visualizer"
               width={1024}
               height={1536}
               className="absolute inset-0 h-full w-full object-cover"
