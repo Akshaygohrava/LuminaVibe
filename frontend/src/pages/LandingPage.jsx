@@ -333,13 +333,21 @@ function SiteNav() {
 
         <div className="flex shrink-0 items-center gap-2">
           <a
-            href="#pulse"
+            href="/signin"
+            onClick={(e) => {
+              e.preventDefault();
+              window.navigateTo("/signin");
+            }}
             className="btn-ink hidden rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 sm:inline-block"
           >
             Sign in
           </a>
           <a
-            href="#pulse"
+            href="/signup"
+            onClick={(e) => {
+              e.preventDefault();
+              window.navigateTo("/signup");
+            }}
             className="btn-shine btn-ember relative overflow-hidden rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 hover:scale-105 sm:px-5"
           >
             <span className="relative">Sign up</span>
@@ -376,8 +384,12 @@ function SiteNav() {
             ))}
             <li className="sm:hidden">
               <a
-                href="#pulse"
-                onClick={() => setOpen(false)}
+                href="/signin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpen(false);
+                  window.navigateTo("/signin");
+                }}
                 className="block rounded-2xl border border-border px-4 py-3 text-sm text-foreground"
               >
                 Sign in
