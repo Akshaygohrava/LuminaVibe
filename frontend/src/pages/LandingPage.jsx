@@ -74,13 +74,13 @@ const Youtube = (props) => (
   </svg>
 );
 
-import heroApp from "../assets/hero-app.jpg";
-import gallery1 from "../assets/gallery-1.jpg";
-import gallery2 from "../assets/gallery-2.jpg";
-import gallery3 from "../assets/gallery-3.jpg";
-import gallery4 from "../assets/gallery-4.jpg";
-import gallery5 from "../assets/gallery-5.jpg";
-import gallery6 from "../assets/gallery-6.jpg";
+import heroApp from "../assets/images/hero-app.jpg";
+import gallery1 from "../assets/images/gallery-1.jpg";
+import gallery2 from "../assets/images/gallery-2.jpg";
+import gallery3 from "../assets/images/gallery-3.jpg";
+import gallery4 from "../assets/images/gallery-4.jpg";
+import gallery5 from "../assets/images/gallery-5.jpg";
+import gallery6 from "../assets/images/gallery-6.jpg";
 
 /* ------------------------------------------------------------------ data */
 
@@ -632,7 +632,7 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-28 sm:gap-12 sm:pb-24 sm:pt-36 lg:grid-cols-2 lg:pt-44">
+        <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-20 sm:gap-12 sm:pb-24 sm:pt-24 lg:grid-cols-2 lg:pt-28">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Now in open beta
