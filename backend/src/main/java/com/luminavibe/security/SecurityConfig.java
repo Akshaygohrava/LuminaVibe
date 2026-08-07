@@ -37,7 +37,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers(HttpMethod.POST, "/users", "/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/users", "/users/upload-avatar", "/auth/login").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 );

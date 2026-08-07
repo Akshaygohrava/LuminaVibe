@@ -12,6 +12,8 @@ import {
   User,
   Image as ImageIcon,
   PenLine,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import signUpSide from "../assets/images/signup-sideimage.png";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
@@ -96,8 +98,44 @@ export default function SignUpPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm();
+
+  const profilePictureUrl = watch("profile_picture_url");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarUploadError, setAvatarUploadError] = useState(null);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarUploading(true);
+    setAvatarUploadError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8080/users/upload-avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Upload failed");
+      }
+
+      const resData = await response.json();
+      setValue("profile_picture_url", resData.url, { shouldValidate: true });
+    } catch (err) {
+      setAvatarUploadError(err.message || "Failed to upload image.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -336,31 +374,79 @@ export default function SignUpPage() {
               </Field>
 
               <Field
-                label="Profile picture URL"
-                error={errors.profile_picture_url?.message}
-                icon={<ImageIcon className="h-4 w-4" />}
+                label="Profile picture"
+                error={errors.profile_picture_url?.message || avatarUploadError}
+                icon={null}
               >
-                <input
-                  placeholder="https://…/avatar.jpg"
-                  className={inputBase}
-                  {...register("profile_picture_url", {
-                    required: "Profile picture URL is required",
-                    pattern: {
-                      value: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/,
-                      message: "Enter a valid image URL",
-                    },
-                  })}
-                />
+                <div className="flex items-center gap-4 rounded-2xl border border-border bg-white/[0.04] p-4 backdrop-blur-md">
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border bg-white/[0.08] overflow-hidden">
+                    {profilePictureUrl ? (
+                      <img
+                        src={profilePictureUrl}
+                        alt="Profile preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-muted-foreground/60" />
+                    )}
+                    {avatarUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={avatarUploading}
+                        onClick={() => document.getElementById("avatar-upload-input").click()}
+                        className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-4 py-2 text-xs font-semibold text-foreground transition-all hover:bg-white/[0.12] active:scale-[0.98] disabled:opacity-50"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        {profilePictureUrl ? "Change photo" : "Upload photo"}
+                      </button>
+                      {profilePictureUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setValue("profile_picture_url", "", { shouldValidate: true })}
+                          className="rounded-xl bg-destructive/10 px-4 py-2 text-xs font-semibold text-destructive transition-all hover:bg-destructive/20 active:scale-[0.98]"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/80">
+                      JPG, PNG or GIF. Max size 5MB.
+                    </p>
+                  </div>
+
+                  <input
+                    id="avatar-upload-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+
+                  <input
+                    type="hidden"
+                    {...register("profile_picture_url", {
+                      required: "Profile picture is required",
+                    })}
+                  />
+                </div>
               </Field>
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || avatarUploading}
                 className="group flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-display text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none"
                 style={{ backgroundImage: "var(--gradient-sunset)", boxShadow: "var(--shadow-glow)" }}
               >
-                {isLoading ? "Creating account..." : "Create account"}
-                {!isLoading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
+                {isLoading ? "Creating account..." : avatarUploading ? "Uploading profile picture..." : "Create account"}
+                {!isLoading && !avatarUploading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
 
               {done ? (
