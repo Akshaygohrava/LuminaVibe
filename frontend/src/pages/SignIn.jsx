@@ -107,7 +107,7 @@ export default function SignInPage() {
 
       setDone("Successfully signed in!");
       setTimeout(() => {
-        window.navigateTo("/");
+        window.navigateTo("/feed");
       }, 1500);
     } catch (error) {
       setSubmitError(error.message);

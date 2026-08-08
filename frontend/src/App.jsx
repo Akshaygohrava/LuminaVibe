@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import LandingPage from './pages/LandingPage'
 import SignInPage from './pages/SignIn'
 import SignUpPage from './pages/SignUp'
+import FeedPage from './pages/Feed'
 import './App.css'
 
 function App() {
@@ -30,12 +31,43 @@ function App() {
   // Attach navigation helper globally
   window.navigateTo = navigate
 
+  // Simple auth check helper
+  const isAuthenticated = () => {
+    return !!localStorage.getItem('token')
+  };
+
+  if (path === '/feed') {
+    if (!isAuthenticated()) {
+      setTimeout(() => navigate('/'), 0)
+      return null
+    }
+    return <FeedPage />
+  }
+
   if (path === '/signin') {
+    if (isAuthenticated()) {
+      setTimeout(() => navigate('/feed'), 0)
+      return null
+    }
     return <SignInPage />
   }
+
   if (path === '/signup') {
+    if (isAuthenticated()) {
+      setTimeout(() => navigate('/feed'), 0)
+      return null
+    }
     return <SignUpPage />
   }
+
+  if (path === '/') {
+    if (isAuthenticated()) {
+      setTimeout(() => navigate('/feed'), 0)
+      return null
+    }
+    return <LandingPage />
+  }
+
   return <LandingPage />
 }
 
