@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import logoIcon from "../assets/icons/logo-icon.jpg";
 import useEmblaCarousel from "embla-carousel-react";
 import {
   ArrowLeft,
@@ -299,9 +300,9 @@ function SiteNav() {
           href="#top"
           className="group flex min-w-0 items-center gap-2 pl-0.5 font-display text-lg font-bold sm:gap-2.5 sm:pl-1 sm:text-xl"
         >
-          <span className="relative grid size-8 shrink-0 place-items-center rounded-2xl bg-aurora transition-all duration-500 group-hover:rotate-[18deg] group-hover:rounded-full sm:size-9">
-            <Sparkles className="size-4 text-primary-foreground" />
-            <span className="absolute inset-0 rounded-2xl bg-aurora opacity-60 blur-md transition-opacity duration-500 group-hover:opacity-100" />
+          <span className="relative grid size-8 shrink-0 place-items-center rounded-xl overflow-hidden transition-all duration-500 group-hover:rotate-[18deg] sm:size-9">
+            <img src={logoIcon} alt="LuminaVibe logo" className="h-full w-full object-cover" />
+            <span className="absolute inset-0 rounded-xl bg-aurora opacity-10 blur-sm transition-opacity duration-500 group-hover:opacity-30" />
           </span>
           <span className="truncate text-aurora">LuminaVibe</span>
         </a>

@@ -18,6 +18,7 @@ import {
 import signUpSide from "../assets/images/signup-sideimage.png";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
 import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
+import logoIcon from "../assets/icons/logo-icon.jpg";
 
 const inputBase =
   "peer w-full rounded-2xl border border-border bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-foreground backdrop-blur-md outline-none transition-all duration-300 placeholder:text-muted-foreground/60 hover:border-primary/40 hover:bg-white/[0.07] focus:border-primary/70 focus:bg-white/[0.09] focus:shadow-[0_0_0_4px_oklch(0.7_0.19_40/0.14),0_10px_30px_-14px_oklch(0.7_0.19_40/0.6)]";
@@ -210,15 +211,7 @@ export default function SignUpPage() {
             <div className="absolute inset-0" style={{ backgroundImage: "var(--gradient-ink)" }} />
             <div className="relative flex h-full flex-col justify-between p-10">
               <div className="flex items-center gap-2.5">
-                <span
-                  className="grid h-9 w-9 place-items-center rounded-xl text-primary-foreground"
-                  style={{
-                    backgroundImage: "var(--gradient-sunset)",
-                    boxShadow: "var(--shadow-glow)",
-                  }}
-                >
-                  <Sparkles className="h-4 w-4" strokeWidth={2.5} />
-                </span>
+                <img src={logoIcon} alt="" className="h-9 w-9 rounded-xl object-cover" />
                 <span className="font-display text-lg font-semibold tracking-tight text-foreground">
                   LuminaVibe
                 </span>
@@ -268,13 +261,8 @@ export default function SignUpPage() {
             style={{ boxShadow: "var(--shadow-panel)" }}
           >
             <div className="mb-7 flex items-center gap-2.5 lg:hidden">
-              <span
-                className="grid h-9 w-9 place-items-center rounded-xl text-primary-foreground"
-                style={{ backgroundImage: "var(--gradient-sunset)" }}
-              >
-                <Sparkles className="h-4 w-4" strokeWidth={2.5} />
-              </span>
-              <span className="font-display text-lg font-semibold tracking-tight">LuminaVibe</span>
+              <img src={logoIcon} alt="" className="h-9 w-9 rounded-xl object-cover" />
+              <span className="font-display text-lg font-semibold tracking-tight text-foreground">LuminaVibe</span>
             </div>
 
             <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">

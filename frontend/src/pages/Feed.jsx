@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
+import logoIcon from "../assets/icons/logo-icon.jpg";
 
 export default function FeedPage() {
   // Authentication & User state
@@ -325,9 +326,12 @@ export default function FeedPage() {
     <div className="feed-page-container">
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header">
-        <span className="mobile-logo">
-          LuminaVibe<span className="sidebar-logo-dot">.</span>
-        </span>
+        <div className="flex items-center gap-2">
+          <img src={logoIcon} alt="" className="size-7 rounded-lg object-cover" />
+          <span className="mobile-logo">
+            LuminaVibe<span className="sidebar-logo-dot">.</span>
+          </span>
+        </div>
         <div className="mobile-header-actions">
           <button className="icon-badge-btn" aria-label="Notifications">
             <Bell className="size-5" />
@@ -344,8 +348,9 @@ export default function FeedPage() {
         {/* LEFT SIDEBAR (Desktop/Tablet) */}
         <aside className="sidebar-left">
           <div>
-            <div className="sidebar-logo">
-              LuminaVibe<span className="sidebar-logo-dot">.</span>
+            <div className="sidebar-logo flex items-center gap-2.5">
+              <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
+              <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
             </div>
 
             <nav className="sidebar-nav-list">
