@@ -104,7 +104,7 @@ export default function SignInPage() {
 
       const resData = await response.json();
       localStorage.setItem("token", resData.token);
-      localStorage.setItem("user", JSON.stringify(resData.user));
+      localStorage.setItem("user", JSON.stringify(resData.userDto || resData.user));
 
       setDone("Successfully signed in!");
       setTimeout(() => {

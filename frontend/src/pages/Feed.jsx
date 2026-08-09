@@ -28,8 +28,11 @@ export default function FeedPage() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const userStr = localStorage.getItem("user");
-      if (userStr) {
-        return JSON.parse(userStr);
+      if (userStr && userStr !== "undefined") {
+        const parsed = JSON.parse(userStr);
+        if (parsed && parsed.username) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error("Error parsing user data from localStorage", e);
@@ -133,7 +136,7 @@ export default function FeedPage() {
     {
       id: 1,
       username: "Your story",
-      avatar: currentUser?.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+      avatar: currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
       isSelf: true,
       storyUrl: "",
       isLive: false
@@ -250,7 +253,7 @@ export default function FeedPage() {
           const newComment = {
             id: Date.now(),
             username: currentUser.username || "me",
-            avatar: currentUser.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+            avatar: currentUser.profile_picture_url || currentUser.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
             text: commentText,
             time: "Just now",
           };
@@ -274,9 +277,9 @@ export default function FeedPage() {
     const newPost = {
       id: Date.now(),
       user: {
-        name: currentUser.name || "My Creator Account",
+        name: currentUser.full_name || currentUser.name || "My Creator Account",
         username: currentUser.username || "creator_profile",
-        avatar: currentUser.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+        avatar: currentUser.profile_picture_url || currentUser.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
       },
       location: newPostLocation.trim() || "World Grid",
       time: "Just now",
@@ -347,50 +350,48 @@ export default function FeedPage() {
       <div className="feed-layout">
         {/* LEFT SIDEBAR (Desktop/Tablet) */}
         <aside className="sidebar-left">
-          <div>
-            <div className="sidebar-logo flex items-center gap-2.5">
-              <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
-              <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
-            </div>
-
-            <nav className="sidebar-nav-list">
-              {[
-                { name: "Home", icon: <Home className="size-5" /> },
-                { name: "Explore", icon: <Compass className="size-5" /> },
-                { name: "Notifications", icon: <Bell className="size-5" /> },
-                { name: "Messages", icon: <MessageSquare className="size-5" /> },
-                { name: "Profile", icon: <User className="size-5" /> },
-                { name: "Settings", icon: <Settings className="size-5" /> },
-              ].map((item) => (
-                <div
-                  key={item.name}
-                  className={`sidebar-nav-item ${activeNav === item.name ? "active" : ""}`}
-                  onClick={() => setActiveNav(item.name)}
-                >
-                  {item.icon}
-                  <span>{item.name}</span>
-                </div>
-              ))}
-            </nav>
-
-            <button
-              className="sidebar-btn-create"
-              onClick={() => setShowCreateModal(true)}
-              aria-label="Create Post"
-            >
-              <Plus className="size-5" />
-              <span>Create Post</span>
-            </button>
+          <div className="sidebar-logo flex items-center gap-2.5">
+            <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
+            <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
           </div>
+
+          <nav className="sidebar-nav-list">
+            {[
+              { name: "Home", icon: <Home className="size-5" /> },
+              { name: "Explore", icon: <Compass className="size-5" /> },
+              { name: "Notifications", icon: <Bell className="size-5" /> },
+              { name: "Messages", icon: <MessageSquare className="size-5" /> },
+              { name: "Profile", icon: <User className="size-5" /> },
+              { name: "Settings", icon: <Settings className="size-5" /> },
+            ].map((item) => (
+              <div
+                key={item.name}
+                className={`sidebar-nav-item ${activeNav === item.name ? "active" : ""}`}
+                onClick={() => setActiveNav(item.name)}
+              >
+                {item.icon}
+                <span>{item.name}</span>
+              </div>
+            ))}
+          </nav>
+
+          <button
+            className="sidebar-btn-create"
+            onClick={() => setShowCreateModal(true)}
+            aria-label="Create Post"
+          >
+            <Plus className="size-5" />
+            <span>Create Post</span>
+          </button>
 
           <div className="sidebar-profile">
             <img
-              src={currentUser?.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              src={currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
               alt="Profile avatar"
               className="sidebar-avatar"
             />
             <div className="sidebar-profile-info">
-              <div className="sidebar-profile-name">{currentUser?.name || "Creator Profile"}</div>
+              <div className="sidebar-profile-name">{currentUser?.full_name || currentUser?.name || "Creator Profile"}</div>
               <div className="sidebar-profile-handle">@{currentUser?.username || "creator"}</div>
             </div>
             <button className="sidebar-logout-btn" onClick={handleLogout} title="Log Out">

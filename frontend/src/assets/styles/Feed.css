@@ -29,11 +29,19 @@
 }
 
 /* Responsive columns mapping */
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
   .feed-layout {
-    grid-template-columns: 280px 1fr 350px;
-    gap: 28px;
+    grid-template-columns: 260px 1fr 330px;
+    gap: 24px;
     padding: 24px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .feed-layout {
+    grid-template-columns: 220px 1fr;
+    gap: 20px;
+    padding: 20px;
   }
 }
 
@@ -60,8 +68,8 @@
   height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 28px 24px;
+  gap: 16px;
+  padding: 24px 20px;
   border-radius: 2rem;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -69,6 +77,13 @@
   -webkit-backdrop-filter: blur(24px);
   box-shadow: var(--glass-glow);
   z-index: 40;
+  overflow-y: auto;
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.sidebar-left::-webkit-scrollbar {
+  display: none;
 }
 
 @media (max-width: 1023px) {
@@ -90,7 +105,7 @@
   align-items: center;
   gap: 12px;
   font-family: "Outfit", sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #ffffff 40%, var(--lime-neon) 100%);
@@ -106,19 +121,18 @@
 .sidebar-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 36px;
-  flex-grow: 1;
+  gap: 6px;
+  margin-top: 20px;
 }
 
 .sidebar-nav-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 14px 18px;
-  border-radius: 1.25rem;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 1rem;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -150,19 +164,20 @@
 }
 
 .sidebar-btn-create {
-  margin-top: 20px;
+  margin-top: 12px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 1.25rem;
+  gap: 8px;
+  padding: 11px;
+  border-radius: 1rem;
   background: var(--lime-neon);
   color: #000000;
   font-weight: 600;
+  font-size: 0.9rem;
   font-family: "Outfit", sans-serif;
-  box-shadow: 0 4px 20px var(--lime-neon-glow);
+  box-shadow: 0 4px 16px var(--lime-neon-glow);
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
@@ -190,7 +205,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 8px 10px;
   border-radius: 1.25rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -830,9 +845,9 @@
   z-index: 40;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1199px) {
   .sidebar-right {
-    display: none; /* hidden on tablet and mobile */
+    display: none; /* hidden on tablet, mobile and smaller laptops */
   }
 }
 
