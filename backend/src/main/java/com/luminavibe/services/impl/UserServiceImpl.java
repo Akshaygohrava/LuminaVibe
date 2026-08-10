@@ -50,14 +50,14 @@ public class UserServiceImpl implements UserService {
         }
         User savedUser = userRepository.save(user);
 
-        return modelMapper.map(savedUser, UserDto.class);
+        return convertToDto(savedUser);
     }
 
     @Override
     public List<UserDto> searchUsers(String query) {
         List<User> users = userRepository.findByUsernameContainingIgnoreCaseOrFullNameContainingIgnoreCase(query, query);
         return users.stream()
-                .map(user -> modelMapper.map(user, UserDto.class))
+                .map(user -> convertToDto(user))
                 .collect(Collectors.toList());
     }
 
@@ -89,6 +89,13 @@ public class UserServiceImpl implements UserService {
         }
 
         User savedUser = userRepository.save(user);
-        return modelMapper.map(savedUser, UserDto.class);
+        return convertToDto(savedUser);
+    }
+
+    private UserDto convertToDto(User user) {
+        if (user == null) return null;
+        UserDto dto = modelMapper.map(user, UserDto.class);
+        dto.setUsername(user.getActualUsername());
+        return dto;
     }
 }

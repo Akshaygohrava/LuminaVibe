@@ -356,9 +356,9 @@ export default function ProfilePage() {
 
             {/* Stats Counter Row */}
             <div className="profile-stats-grid">
-              <div className="profile-stat-box">
-                <span className="profile-stat-num">256.7K</span>
-                <span className="profile-stat-lbl">Rating</span>
+              <div className="profile-stat-box" onClick={() => setActiveTab("Posts")}>
+                <span className="profile-stat-num">{userPosts.length}</span>
+                <span className="profile-stat-lbl">Posts</span>
               </div>
               <div className="profile-stat-box" onClick={openFollowersList}>
                 <span className="profile-stat-num">1.5K</span>
