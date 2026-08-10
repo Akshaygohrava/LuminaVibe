@@ -25,6 +25,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto register(UserDto userDto) {
+        if (userRepository.existsByUsername(userDto.getUsername())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "Username is already taken"
+            );
+        }
+        if (userRepository.existsByEmail(userDto.getEmail())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "Email is already taken"
+            );
+        }
+
         String hashedPassword = passwordEncoder.encode(userDto.getPassword());
         userDto.setPassword(hashedPassword);
 

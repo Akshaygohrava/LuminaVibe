@@ -153,7 +153,16 @@ export default function SignUpPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Failed to create account. Please try again.");
+        let displayMessage = errorText;
+        try {
+          const parsedError = JSON.parse(errorText);
+          if (parsedError && parsedError.message) {
+            displayMessage = parsedError.message;
+          }
+        } catch (e) {
+          // Fallback to raw text
+        }
+        throw new Error(displayMessage || "Failed to create account. Please try again.");
       }
 
       setDone("Profile ready — redirecting to sign in page...");

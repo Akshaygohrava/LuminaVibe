@@ -99,7 +99,16 @@ export default function SignInPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Failed to sign in. Please check your credentials.");
+        let displayMessage = errorText;
+        try {
+          const parsedError = JSON.parse(errorText);
+          if (parsedError && parsedError.message) {
+            displayMessage = parsedError.message;
+          }
+        } catch (e) {
+          // Fallback to raw text
+        }
+        throw new Error(displayMessage || "Failed to sign in. Please check your credentials.");
       }
 
       const resData = await response.json();
