@@ -367,7 +367,14 @@ export default function FeedPage() {
               <div
                 key={item.name}
                 className={`sidebar-nav-item ${activeNav === item.name ? "active" : ""}`}
-                onClick={() => setActiveNav(item.name)}
+                onClick={() => {
+                  setActiveNav(item.name);
+                  if (item.name === "Home") {
+                    window.navigateTo("/feed");
+                  } else if (item.name === "Explore") {
+                    window.navigateTo("/explore");
+                  }
+                }}
               >
                 {item.icon}
                 <span>{item.name}</span>
@@ -671,14 +678,20 @@ export default function FeedPage() {
       <nav className="mobile-bottom-nav">
         <button
           className={`mobile-nav-btn ${activeNav === "Home" ? "active" : ""}`}
-          onClick={() => setActiveNav("Home")}
+          onClick={() => {
+            setActiveNav("Home");
+            window.navigateTo("/feed");
+          }}
           aria-label="Home"
         >
           <Home className="size-5" />
         </button>
         <button
           className={`mobile-nav-btn ${activeNav === "Explore" ? "active" : ""}`}
-          onClick={() => setActiveNav("Explore")}
+          onClick={() => {
+            setActiveNav("Explore");
+            window.navigateTo("/explore");
+          }}
           aria-label="Explore"
         >
           <Compass className="size-5" />

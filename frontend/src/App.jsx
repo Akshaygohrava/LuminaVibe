@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage'
 import SignInPage from './pages/SignIn'
 import SignUpPage from './pages/SignUp'
 import FeedPage from './pages/Feed'
+import ExplorePage from './pages/Explore'
 import './App.css'
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
       return null
     }
     return <FeedPage />
+  }
+
+  if (path === '/explore') {
+    if (!isAuthenticated()) {
+      setTimeout(() => navigate('/'), 0)
+      return null
+    }
+    return <ExplorePage />
   }
 
   if (path === '/signin') {

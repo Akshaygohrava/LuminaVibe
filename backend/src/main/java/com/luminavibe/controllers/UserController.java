@@ -25,6 +25,11 @@ public class UserController {
         return new ResponseEntity<UserDto>(userService.register(userDto), HttpStatus.CREATED);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<java.util.List<UserDto>> searchUsers(@RequestParam("query") String query) {
+        return ResponseEntity.ok(userService.searchUsers(query));
+    }
+
     @PostMapping("/upload-avatar")
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
