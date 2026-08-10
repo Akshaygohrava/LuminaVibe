@@ -5,6 +5,7 @@ import SignUpPage from './pages/SignUp'
 import FeedPage from './pages/Feed'
 import ExplorePage from './pages/Explore'
 import ProfilePage from './pages/Profile'
+import SettingsPage from './pages/Settings'
 import './App.css'
 
 function App() {
@@ -60,6 +61,14 @@ function App() {
       return null
     }
     return <ProfilePage />
+  }
+
+  if (path === '/settings') {
+    if (!isAuthenticated()) {
+      setTimeout(() => navigate('/'), 0)
+      return null
+    }
+    return <SettingsPage />
   }
 
   if (path === '/signin') {

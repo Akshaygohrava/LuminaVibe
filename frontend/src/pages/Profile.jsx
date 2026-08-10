@@ -285,6 +285,8 @@ export default function ProfilePage() {
                     window.navigateTo("/explore");
                   } else if (item.name === "Profile") {
                     window.navigateTo("/profile");
+                  } else if (item.name === "Settings") {
+                    window.navigateTo("/settings");
                   }
                 }}
               >
