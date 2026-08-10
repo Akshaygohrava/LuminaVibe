@@ -4,6 +4,7 @@ import SignInPage from './pages/SignIn'
 import SignUpPage from './pages/SignUp'
 import FeedPage from './pages/Feed'
 import ExplorePage from './pages/Explore'
+import ProfilePage from './pages/Profile'
 import './App.css'
 
 function App() {
@@ -51,6 +52,14 @@ function App() {
       return null
     }
     return <ExplorePage />
+  }
+
+  if (path === '/profile') {
+    if (!isAuthenticated()) {
+      setTimeout(() => navigate('/'), 0)
+      return null
+    }
+    return <ProfilePage />
   }
 
   if (path === '/signin') {

@@ -263,6 +263,8 @@ export default function ExplorePage() {
                     window.navigateTo("/feed");
                   } else if (item.name === "Explore") {
                     window.navigateTo("/explore");
+                  } else if (item.name === "Profile") {
+                    window.navigateTo("/profile");
                   }
                 }}
               >
@@ -505,6 +507,7 @@ export default function ExplorePage() {
           className={`mobile-nav-btn ${activeNav === "Profile" ? "active" : ""}`}
           onClick={() => {
             setActiveNav("Profile");
+            window.navigateTo("/profile");
           }}
           aria-label="Profile"
         >

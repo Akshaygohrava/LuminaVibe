@@ -30,6 +30,11 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsers(query));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<UserDto> updateUser(@PathVariable("id") Integer id, @RequestBody UserDto userDto) {
+        return ResponseEntity.ok(userService.updateUser(id, userDto));
+    }
+
     @PostMapping("/upload-avatar")
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {

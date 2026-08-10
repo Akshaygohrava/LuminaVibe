@@ -60,4 +60,35 @@ public class UserServiceImpl implements UserService {
                 .map(user -> modelMapper.map(user, UserDto.class))
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public UserDto updateUser(Integer userId, UserDto userDto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "User not found"
+                ));
+
+        if (userDto.getUsername() != null && !userDto.getUsername().isBlank()) {
+            User existingUser = userRepository.findByUsername(userDto.getUsername()).orElse(null);
+            if (existingUser != null && !existingUser.getUserId().equals(userId)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Username is already taken"
+                );
+            }
+            user.setUsername(userDto.getUsername());
+        }
+
+        if (userDto.getFullName() != null) {
+            user.setFullName(userDto.getFullName());
+        }
+        if (userDto.getBio() != null) {
+            user.setBio(userDto.getBio());
+        }
+        if (userDto.getProfilePictureUrl() != null) {
+            user.setProfilePictureUrl(userDto.getProfilePictureUrl());
+        }
+
+        User savedUser = userRepository.save(user);
+        return modelMapper.map(savedUser, UserDto.class);
+    }
 }

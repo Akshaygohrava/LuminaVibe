@@ -373,6 +373,8 @@ export default function FeedPage() {
                     window.navigateTo("/feed");
                   } else if (item.name === "Explore") {
                     window.navigateTo("/explore");
+                  } else if (item.name === "Profile") {
+                    window.navigateTo("/profile");
                   }
                 }}
               >
@@ -714,7 +716,7 @@ export default function FeedPage() {
           className={`mobile-nav-btn ${activeNav === "Profile" ? "active" : ""}`}
           onClick={() => {
             setActiveNav("Profile");
-            // If mobile user clicks profile, we could also give them a logout option
+            window.navigateTo("/profile");
           }}
           aria-label="Profile"
         >
