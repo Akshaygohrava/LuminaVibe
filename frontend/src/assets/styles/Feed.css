@@ -1639,8 +1639,47 @@
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
 }
-.light-theme .mobile-logo {
+.light-theme .mobile-logo,
+.light-theme .sidebar-logo {
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
   color: #0f172a !important;
+}
+
+/* Home / For You Tabs Light Theme */
+.light-theme .feed-tabs {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+.light-theme .feed-tab {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+.light-theme .feed-tab:hover {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+.light-theme .feed-tab.active {
+  color: #6366f1 !important;
+}
+.light-theme .feed-tab.active::after {
+  background: #6366f1 !important;
+}
+
+/* Explore Category Tabs Light Theme */
+.light-theme .explore-category-tab {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: #475569 !important;
+}
+.light-theme .explore-category-tab:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #0f172a !important;
+}
+.light-theme .explore-category-tab.active {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
 }
 
 /* Buttons overrides */
