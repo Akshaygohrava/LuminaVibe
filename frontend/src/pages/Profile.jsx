@@ -56,8 +56,16 @@ export default function ProfilePage() {
 
   const [profileUser, setProfileUser] = useState(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
-  const [isFollowingProfileUser, setIsFollowingProfileUser] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  
+  // Dynamic Follow and Privacy States
+  const [followStatus, setFollowStatus] = useState("NOT_FOLLOWING");
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [isLoadingFollowData, setIsLoadingFollowData] = useState(true);
   const [searchUrl, setSearchUrl] = useState(window.location.search);
 
   // Edit profile form states
@@ -88,11 +96,6 @@ export default function ProfilePage() {
     { id: 1, name: "Randy Bachtiar", handle: "randybchtr", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop" },
     { id: 2, name: "Sarah Connor", handle: "sarah_c", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop" },
     { id: 3, name: "Calire GD", handle: "calire.gd", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop" },
-  ]);
-
-  const [followingList, setFollowingList] = useState([
-    { id: 4, name: "Akmal Nasrullah", handle: "akmalnsrllh", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop" },
-    { id: 5, name: "Aditya Prasodjo", handle: "aditya_prasodjo", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop" },
   ]);
 
   // Dynamic User Posts state (fetched from database based on profileUser)
@@ -166,6 +169,7 @@ export default function ProfilePage() {
             bio: data.bio || "",
             profile_picture_url: data.profile_picture_url || data.profilePictureUrl,
             profilePicture: data.profile_picture_url || data.profilePictureUrl,
+            isPrivate: data.private ?? data.isPrivate ?? false,
           };
           setProfileUser(normUser);
           setIsLoadingProfile(false);
@@ -236,6 +240,106 @@ export default function ProfilePage() {
         setIsLoadingUserPosts(false);
       });
   }, [profileUser]);
+
+  // Load follower and following counts/lists dynamically
+  const loadFollowData = async () => {
+    if (!profileUser || profileUser.userId === 0) return;
+    setIsLoadingFollowData(true);
+    try {
+      const headers = {
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      };
+
+      // 1. Fetch Follow Status
+      const statusRes = await fetch(`http://localhost:8080/follows/status/${profileUser.userId}`, { headers });
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        setFollowStatus(statusData.status);
+      }
+
+      // 2. Fetch Followers List
+      const followersRes = await fetch(`http://localhost:8080/follows/followers/${profileUser.userId}`, { headers });
+      if (followersRes.ok) {
+        const followersData = await followersRes.json();
+        setFollowersList(followersData);
+        setFollowersCount(followersData.length);
+      }
+
+      // 3. Fetch Following List
+      const followingRes = await fetch(`http://localhost:8080/follows/following/${profileUser.userId}`, { headers });
+      if (followingRes.ok) {
+        const followingData = await followingRes.json();
+        setFollowingList(followingData);
+        setFollowingCount(followingData.length);
+      }
+
+      // 4. Fetch Pending Requests
+      if (isOwnProfile) {
+        const requestsRes = await fetch("http://localhost:8080/follows/requests", { headers });
+        if (requestsRes.ok) {
+          const requestsData = await requestsRes.json();
+          setPendingRequests(requestsData);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading follow data:", err);
+    } finally {
+      setIsLoadingFollowData(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFollowData();
+  }, [profileUser, isOwnProfile]);
+
+  const handleFollowToggle = async () => {
+    if (!profileUser || profileUser.userId === 0) return;
+    try {
+      const response = await fetch(`http://localhost:8080/follows/toggle/${profileUser.userId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (response.ok) {
+        await loadFollowData();
+      }
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+    }
+  };
+
+  const handleAcceptRequest = async (followerId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/follows/accept/${followerId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (response.ok) {
+        await loadFollowData();
+      }
+    } catch (err) {
+      console.error("Error accepting request:", err);
+    }
+  };
+
+  const handleRejectRequest = async (followerId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/follows/reject/${followerId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (response.ok) {
+        await loadFollowData();
+      }
+    } catch (err) {
+      console.error("Error rejecting request:", err);
+    }
+  };
 
   // Avatar Image Upload
   const handleAvatarFileChange = async (e) => {
@@ -339,27 +443,56 @@ export default function ProfilePage() {
     window.navigateTo("/");
   };
 
+  const isProfileLocked = !isOwnProfile && profileUser?.isPrivate && followStatus !== "ACCEPTED";
+
   const openFollowersList = () => {
+    if (isProfileLocked) return;
     setListModalTitle("Followers");
-    setListModalUsers(suggestedFollowers);
+    setListModalUsers(followersList.map(u => ({
+      id: u.userId,
+      name: u.fullName || u.full_name || "Lumina Creator",
+      handle: u.username,
+      avatar: u.profilePictureUrl || u.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+      isFollowing: true
+    })));
     setShowListModal(true);
   };
 
   const openFollowingList = () => {
+    if (isProfileLocked) return;
     setListModalTitle("Following");
-    setListModalUsers(followingList);
+    setListModalUsers(followingList.map(u => ({
+      id: u.userId,
+      name: u.fullName || u.full_name || "Lumina Creator",
+      handle: u.username,
+      avatar: u.profilePictureUrl || u.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+      isFollowing: true
+    })));
     setShowListModal(true);
   };
 
-  const toggleListFollow = (userId) => {
-    setListModalUsers(prev =>
-      prev.map(u => {
-        if (u.id === userId) {
-          return { ...u, isFollowing: !u.isFollowing };
+  const toggleListFollow = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/follows/toggle/${userId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
-        return u;
-      })
-    );
+      });
+      if (response.ok) {
+        setListModalUsers(prev =>
+          prev.map(u => {
+            if (u.id === userId) {
+              return { ...u, isFollowing: !u.isFollowing };
+            }
+            return u;
+          })
+        );
+        await loadFollowData();
+      }
+    } catch (err) {
+      console.error("Error toggling list follow:", err);
+    }
   };
 
   // Split bio text by newlines for bullet points
@@ -492,15 +625,15 @@ export default function ProfilePage() {
                 {/* Stats Counter Row */}
                 <div className="profile-stats-grid">
                   <div className="profile-stat-box" onClick={() => setActiveTab("Posts")}>
-                    <span className="profile-stat-num">{userPosts.length}</span>
+                    <span className="profile-stat-num">{isProfileLocked ? 0 : userPosts.length}</span>
                     <span className="profile-stat-lbl">Posts</span>
                   </div>
                   <div className="profile-stat-box" onClick={openFollowersList}>
-                    <span className="profile-stat-num">1.5K</span>
+                    <span className="profile-stat-num">{isProfileLocked ? "-" : followersCount}</span>
                     <span className="profile-stat-lbl">Followers</span>
                   </div>
                   <div className="profile-stat-box" onClick={openFollowingList}>
-                    <span className="profile-stat-num">1.2K</span>
+                    <span className="profile-stat-num">{isProfileLocked ? "-" : followingCount}</span>
                     <span className="profile-stat-lbl">Following</span>
                   </div>
                 </div>
@@ -519,15 +652,15 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <button
-                        className={`profile-btn-primary ${isFollowingProfileUser ? "following" : ""}`}
-                        onClick={() => setIsFollowingProfileUser(!isFollowingProfileUser)}
+                        className={`profile-btn-primary ${followStatus !== "NOT_FOLLOWING" ? "following" : ""}`}
+                        onClick={handleFollowToggle}
                         style={{
-                          background: isFollowingProfileUser ? "rgba(0, 0, 0, 0.05)" : "#6366f1",
-                          color: isFollowingProfileUser ? "#0f172a" : "#ffffff",
-                          border: isFollowingProfileUser ? "1px solid rgba(0, 0, 0, 0.08)" : "none"
+                          background: followStatus !== "NOT_FOLLOWING" ? "rgba(255, 255, 255, 0.08)" : "#c5f82a",
+                          color: followStatus !== "NOT_FOLLOWING" ? "#ffffff" : "#000000",
+                          border: followStatus !== "NOT_FOLLOWING" ? "1px solid rgba(255, 255, 255, 0.15)" : "none"
                         }}
                       >
-                        {isFollowingProfileUser ? "Following" : "Follow"}
+                        {followStatus === "ACCEPTED" ? "Following" : followStatus === "PENDING" ? "Requested" : "Follow"}
                       </button>
                       <button className="profile-btn-secondary" onClick={() => window.navigateTo("/feed")}>
                         Message
@@ -535,6 +668,47 @@ export default function ProfilePage() {
                     </>
                   )}
                 </div>
+
+            {/* Follow Requests Pending List */}
+            {isOwnProfile && pendingRequests && pendingRequests.length > 0 && (
+              <div className="follow-requests-panel bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] p-5 rounded-3xl mb-6">
+                <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                  <Sparkles className="size-4 text-lime-400" />
+                  Follow Requests ({pendingRequests.length})
+                </h3>
+                <div className="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-2 scrollbar-thin">
+                  {pendingRequests.map((req) => (
+                    <div key={req.follower.userId} className="flex items-center justify-between py-1 border-b border-[rgba(255,255,255,0.02)] last:border-0">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={req.follower.profilePictureUrl || req.follower.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"}
+                          alt=""
+                          className="size-9 rounded-full object-cover"
+                        />
+                        <div className="text-left">
+                          <div className="text-xs font-semibold text-slate-200">{req.follower.fullName || req.follower.full_name || "Lumina Creator"}</div>
+                          <div className="text-[10px] text-slate-400">@{req.follower.username}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-lg transition-colors"
+                          onClick={() => handleAcceptRequest(req.follower.userId)}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          className="text-[10px] bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-slate-300 font-semibold py-1 px-3 rounded-lg transition-colors"
+                          onClick={() => handleRejectRequest(req.follower.userId)}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Horizontal Sub-Tabs Row */}
             <div className="profile-subtabs-row">
@@ -584,27 +758,43 @@ export default function ProfilePage() {
 
           {/* TAB 2: User Posts Grid */}
           {activeTab === "Posts" && (
-            <section className="profile-posts-grid">
-              {userPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="profile-grid-card"
-                  onClick={() => setSelectedPost(post)}
-                >
-                  <img src={post.imageUrl} alt={post.title} loading="lazy" />
-                  <div className="profile-grid-hover">
-                    <div className="flex items-center gap-1.5">
-                      <Heart className="size-4 fill-white" />
-                      <span>{post.likes}</span>
+            isProfileLocked ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-[rgba(255,255,255,0.02)] rounded-3xl border border-[rgba(255,255,255,0.05)] col-span-full gap-4 min-h-[300px]" style={{ gridColumn: "1 / -1" }}>
+                <Lock className="size-12 text-slate-500 mb-2" />
+                <h3 className="text-lg font-semibold text-slate-200">This Account is Private</h3>
+                <p className="text-sm text-slate-400 max-w-sm">Follow this account to see their photos and videos.</p>
+              </div>
+            ) : (
+              <section className="profile-posts-grid">
+                {userPosts.length === 0 ? (
+                  <div className="col-span-full text-center py-12 text-slate-500" style={{ gridColumn: "1 / -1" }}>No posts shared yet.</div>
+                ) : (
+                  userPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="profile-grid-card"
+                      onClick={() => setSelectedPost(post)}
+                    >
+                      {post.mediaList && post.mediaList.length > 0 && post.mediaList[0].mediaType.startsWith("video/") ? (
+                        <video src={post.mediaList[0].mediaUrl} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={post.imageUrl} alt={post.title} loading="lazy" />
+                      )}
+                      <div className="profile-grid-hover">
+                        <div className="flex items-center gap-1.5">
+                          <Heart className="size-4 fill-white" />
+                          <span>{post.likes}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircle className="size-4 fill-white" />
+                          <span>{post.comments}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="size-4 fill-white" />
-                      <span>{post.comments}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </section>
+                  ))
+                )}
+              </section>
+            )
           )}
 
           {/* TAB 3: Insights Performance meters */}
