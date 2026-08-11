@@ -45,6 +45,11 @@ export default function ExplorePage() {
   });
 
   const [activeNav, setActiveNav] = useState("Explore");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") !== "light");
+
+  useEffect(() => {
+    setDarkMode(localStorage.getItem("theme") !== "light");
+  }, []);
   const [activeTab, setActiveTab] = useState("Trending");
 
   // Search input & backend results state
@@ -248,9 +253,9 @@ export default function ExplorePage() {
   );
 
   return (
-    <div className="feed-page-container explore-page-container">
+    <div className={`feed-page-container explore-page-container ${darkMode ? "dark" : "light-theme"}`}>
       {/* MOBILE TOP HEADER */}
-      <header className="mobile-top-header">
+      <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
         <span className="mobile-logo">
           LuminaVibe<span className="sidebar-logo-dot">.</span>
         </span>

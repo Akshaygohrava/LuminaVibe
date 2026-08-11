@@ -57,6 +57,7 @@ export default function ProfilePage() {
   const [profileUser, setProfileUser] = useState(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") !== "light");
   
   // Dynamic Follow and Privacy States
   const [followStatus, setFollowStatus] = useState("NOT_FOLLOWING");
@@ -448,12 +449,14 @@ export default function ProfilePage() {
   const openFollowersList = () => {
     if (isProfileLocked) return;
     setListModalTitle("Followers");
+    const followingIds = followingList.map(f => f.userId);
     setListModalUsers(followersList.map(u => ({
       id: u.userId,
       name: u.fullName || u.full_name || "Lumina Creator",
       handle: u.username,
       avatar: u.profilePictureUrl || u.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-      isFollowing: true
+      isFollowing: followingIds.includes(u.userId),
+      followStatus: followingIds.includes(u.userId) ? "ACCEPTED" : "NOT_FOLLOWING"
     })));
     setShowListModal(true);
   };
@@ -466,7 +469,8 @@ export default function ProfilePage() {
       name: u.fullName || u.full_name || "Lumina Creator",
       handle: u.username,
       avatar: u.profilePictureUrl || u.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-      isFollowing: true
+      isFollowing: true,
+      followStatus: "ACCEPTED"
     })));
     setShowListModal(true);
   };
@@ -480,18 +484,50 @@ export default function ProfilePage() {
         }
       });
       if (response.ok) {
-        setListModalUsers(prev =>
-          prev.map(u => {
-            if (u.id === userId) {
-              return { ...u, isFollowing: !u.isFollowing };
-            }
-            return u;
-          })
-        );
+        const statusRes = await fetch(`http://localhost:8080/follows/status/${userId}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+        });
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          setListModalUsers(prev =>
+            prev.map(u => {
+              if (u.id === userId) {
+                return { 
+                  ...u, 
+                  isFollowing: statusData.status === "ACCEPTED",
+                  followStatus: statusData.status 
+                };
+              }
+              return u;
+            })
+          );
+        }
         await loadFollowData();
       }
     } catch (err) {
       console.error("Error toggling list follow:", err);
+    }
+  };
+
+  const getFollowBtnStyle = () => {
+    if (followStatus === "ACCEPTED") {
+      return {
+        background: "rgba(255, 255, 255, 0.08)",
+        color: "#ffffff",
+        border: "1px solid rgba(255, 255, 255, 0.15)"
+      };
+    } else if (followStatus === "PENDING") {
+      return {
+        background: "rgba(245, 158, 11, 0.18)", // warm amber glow background
+        color: "#f59e0b", // distinct amber amber text
+        border: "1px solid rgba(245, 158, 11, 0.4)" // clear amber border
+      };
+    } else {
+      return {
+        background: "#c5f82a",
+        color: "#000000",
+        border: "none"
+      };
     }
   };
 
@@ -501,18 +537,18 @@ export default function ProfilePage() {
     .filter(line => line.trim().length > 0);
 
   return (
-    <div className="feed-page-container profile-page-container">
+    <div className={`feed-page-container ${darkMode ? "profile-page-container-dark" : "profile-page-container light-theme"}`}>
       {/* MOBILE TOP HEADER */}
-      <header className="mobile-top-header">
+      <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
         <button className="cover-btn-pill" onClick={() => window.navigateTo("/feed")} aria-label="Go back">
-          <ChevronLeft className="size-5 text-slate-800" />
+          <ChevronLeft className="size-5" style={{ color: darkMode ? "#ffffff" : "#0f172a" }} />
         </button>
-        <span className="mobile-logo" style={{ color: "#0f172a" }}>
+        <span className="mobile-logo" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
           Profile
         </span>
         <div className="mobile-header-actions">
           <button className="icon-badge-btn" onClick={handleLogout} aria-label="Log Out">
-            <LogOut className="size-5 text-slate-800" />
+            <LogOut className="size-5" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }} />
           </button>
         </div>
       </header>
@@ -625,15 +661,15 @@ export default function ProfilePage() {
                 {/* Stats Counter Row */}
                 <div className="profile-stats-grid">
                   <div className="profile-stat-box" onClick={() => setActiveTab("Posts")}>
-                    <span className="profile-stat-num">{isProfileLocked ? 0 : userPosts.length}</span>
+                    <span className="profile-stat-num">{userPosts.length}</span>
                     <span className="profile-stat-lbl">Posts</span>
                   </div>
                   <div className="profile-stat-box" onClick={openFollowersList}>
-                    <span className="profile-stat-num">{isProfileLocked ? "-" : followersCount}</span>
+                    <span className="profile-stat-num">{followersCount}</span>
                     <span className="profile-stat-lbl">Followers</span>
                   </div>
                   <div className="profile-stat-box" onClick={openFollowingList}>
-                    <span className="profile-stat-num">{isProfileLocked ? "-" : followingCount}</span>
+                    <span className="profile-stat-num">{followingCount}</span>
                     <span className="profile-stat-lbl">Following</span>
                   </div>
                 </div>
@@ -654,11 +690,7 @@ export default function ProfilePage() {
                       <button
                         className={`profile-btn-primary ${followStatus !== "NOT_FOLLOWING" ? "following" : ""}`}
                         onClick={handleFollowToggle}
-                        style={{
-                          background: followStatus !== "NOT_FOLLOWING" ? "rgba(255, 255, 255, 0.08)" : "#c5f82a",
-                          color: followStatus !== "NOT_FOLLOWING" ? "#ffffff" : "#000000",
-                          border: followStatus !== "NOT_FOLLOWING" ? "1px solid rgba(255, 255, 255, 0.15)" : "none"
-                        }}
+                        style={getFollowBtnStyle()}
                       >
                         {followStatus === "ACCEPTED" ? "Following" : followStatus === "PENDING" ? "Requested" : "Follow"}
                       </button>
@@ -1065,12 +1097,14 @@ export default function ProfilePage() {
                       <div className="modal-user-handle">@{user.handle}</div>
                     </div>
                   </div>
-                  <button
-                    className={`btn-follow-action ${user.isFollowing ? "following" : "follow"}`}
-                    onClick={() => toggleListFollow(user.id)}
-                  >
-                    {user.isFollowing ? "Following" : "Follow"}
-                  </button>
+                  {user.id !== currentUser.userId && (
+                    <button
+                      className={`btn-follow-action ${user.followStatus === "ACCEPTED" ? "following" : user.followStatus === "PENDING" ? "requested" : "follow"}`}
+                      onClick={() => toggleListFollow(user.id)}
+                    >
+                      {user.followStatus === "ACCEPTED" ? "Following" : user.followStatus === "PENDING" ? "Requested" : "Follow"}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

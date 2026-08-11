@@ -1,22 +1,45 @@
 /* CSS variables and styles for LuminaVibe Profile Page (White Theme) */
 
 :root {
-  --profile-light-bg: #f8fafc;
-  --profile-text-dark: #0f172a;
-  --profile-text-muted: #64748b;
-  --profile-accent-blue: #6366f1;
-  --profile-accent-blue-hover: #4f46e5;
-  --profile-glass-bg: rgba(255, 255, 255, 0.75);
-  --profile-glass-border: rgba(0, 0, 0, 0.06);
-  --profile-card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 5px 15px -5px rgba(0, 0, 0, 0.02);
+  /* Default Dark Mode Theme Variables (matching home page) */
+  --profile-light-bg: #050508;
+  --profile-text-dark: #f8fafc;
+  --profile-text-muted: #94a3b8;
+  --profile-accent-blue: #c5f82a;
+  --profile-accent-blue-hover: #aee81a;
+  --profile-glass-bg: rgba(10, 10, 15, 0.6);
+  --profile-glass-border: rgba(255, 255, 255, 0.08);
+  --profile-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --profile-btn-text: #000000;
+  --profile-btn-secondary-bg: rgba(255, 255, 255, 0.05);
+  --profile-btn-secondary-hover-bg: rgba(255, 255, 255, 0.08);
+  --profile-radial-gradient-1: radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.08) 0%, transparent 45%);
+  --profile-radial-gradient-2: radial-gradient(circle at 10% 90%, rgba(236, 72, 153, 0.08) 0%, transparent 45%);
+}
+
+/* Light Theme Variables Overrides */
+.light-theme {
+  --profile-light-bg: #f8fafc !important;
+  --profile-text-dark: #0f172a !important;
+  --profile-text-muted: #64748b !important;
+  --profile-accent-blue: #6366f1 !important;
+  --profile-accent-blue-hover: #4f46e5 !important;
+  --profile-glass-bg: rgba(255, 255, 255, 0.75) !important;
+  --profile-glass-border: rgba(0, 0, 0, 0.06) !important;
+  --profile-card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 5px 15px -5px rgba(0, 0, 0, 0.02) !important;
+  --profile-btn-text: #ffffff !important;
+  --profile-btn-secondary-bg: #ffffff !important;
+  --profile-btn-secondary-hover-bg: rgba(0, 0, 0, 0.02) !important;
+  --profile-radial-gradient-1: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%) !important;
+  --profile-radial-gradient-2: radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.05) 0%, transparent 40%) !important;
 }
 
 .profile-page-container {
   min-height: 100vh;
   background-color: var(--profile-light-bg);
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
+    var(--profile-radial-gradient-1),
+    var(--profile-radial-gradient-2);
   color: var(--profile-text-dark);
 }
 
@@ -224,7 +247,7 @@
   margin-top: 20px;
   width: 100%;
   max-width: 450px;
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--profile-glass-border);
   padding-top: 18px;
 }
 
@@ -275,8 +298,8 @@
 
 .profile-btn-primary {
   flex: 1;
-  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-  color: #ffffff;
+  background: var(--profile-accent-blue);
+  color: var(--profile-btn-text);
   border: none;
   font-weight: 600;
   font-size: 0.92rem;
@@ -287,19 +310,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 14px rgba(197, 248, 42, 0.15);
   transition: all 0.25s ease;
 }
 
 .profile-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
+  filter: brightness(1.05);
 }
 
 .profile-btn-secondary {
   flex: 1;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--profile-btn-secondary-bg);
+  border: 1px solid var(--profile-glass-border);
   color: var(--profile-text-dark);
   font-weight: 600;
   font-size: 0.92rem;
@@ -314,15 +337,15 @@
 }
 
 .profile-btn-secondary:hover {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.12);
+  background: var(--profile-btn-secondary-hover-bg);
+  border-color: var(--profile-glass-border);
 }
 
 /* Horizontal Sub-Tabs row */
 .profile-subtabs-row {
   display: flex;
   width: 100%;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--profile-glass-border);
   padding: 8px 16px;
   justify-content: space-around;
 }

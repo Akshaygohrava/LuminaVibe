@@ -1128,6 +1128,12 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+.btn-follow-action.requested {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
 /* MOBILE BOTTOM NAVIGATION BAR */
 .mobile-bottom-nav {
   display: none;
@@ -1482,4 +1488,181 @@
   border-radius: 6px;
   letter-spacing: 0.05em;
   box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4);
+}
+
+/* Dynamic Global Light Theme Styles Override rulesets */
+.light-theme {
+  --lime-neon: #6366f1 !important; /* Premium Indigo accent for light mode */
+  --lime-neon-glow: rgba(99, 102, 241, 0.25) !important;
+  --lime-neon-dark: #4f46e5 !important;
+  --glass-bg: rgba(255, 255, 255, 0.75) !important;
+  --glass-border: rgba(0, 0, 0, 0.06) !important;
+  --text-active: #6366f1 !important;
+  
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.04) 0%, transparent 40%) !important;
+}
+
+/* Apply light background to page wrappers */
+.light-theme.feed-page-container,
+.light-theme.explore-page-container,
+.light-theme.settings-page-container,
+.light-theme.profile-page-container {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.04) 0%, transparent 40%) !important;
+}
+
+/* Sidebar Light Theme */
+.light-theme .sidebar-left {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 5px 15px -5px rgba(0, 0, 0, 0.02) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+.light-theme .sidebar-logo {
+  color: #0f172a !important;
+}
+.light-theme .sidebar-nav-item {
+  color: #475569 !important;
+}
+.light-theme .sidebar-nav-item:hover {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+}
+.light-theme .sidebar-nav-item.active {
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: #6366f1 !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+}
+.light-theme .sidebar-profile {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+}
+.light-theme .sidebar-profile-name {
+  color: #0f172a !important;
+}
+.light-theme .sidebar-profile-handle {
+  color: #64748b !important;
+}
+.light-theme .sidebar-logout-btn {
+  background: rgba(0, 0, 0, 0.02) !important;
+  color: #475569 !important;
+}
+.light-theme .sidebar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+.light-theme .sidebar-btn-create {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25) !important;
+}
+
+/* Card overrides */
+.light-theme .feed-post-card,
+.light-theme .suggestion-box,
+.light-theme .explore-search-box,
+.light-theme .search-results-section,
+.light-theme .search-user-card,
+.light-theme .settings-card,
+.light-theme .modal-overlay-list,
+.light-theme .create-post-modal-content,
+.light-theme .profile-info-card,
+.light-theme .insights-stats-grid .insight-metric-card,
+.light-theme .lightbox-modal-content,
+.light-theme .follow-requests-panel,
+.light-theme .feed-card-item {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.light-theme .story-ring-box {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+.light-theme .story-user-name {
+  color: #475569 !important;
+}
+
+/* Typography elements */
+.light-theme h1,
+.light-theme h2,
+.light-theme h3,
+.light-theme h4,
+.light-theme .feed-card-title,
+.light-theme .creator-name,
+.light-theme .profile-display-name,
+.light-theme .modal-title,
+.light-theme .search-results-title,
+.light-theme .search-user-fullname,
+.light-theme .modal-user-name,
+.light-theme .settings-section-title,
+.light-theme .post-action-btn,
+.light-theme .post-likes-count,
+.light-theme .feed-section-header,
+.light-theme .tab-item {
+  color: #0f172a !important;
+}
+
+.light-theme p,
+.light-theme span,
+.light-theme div:not(.story-ring-box) {
+  color: inherit;
+}
+
+.light-theme .feed-card-lbl,
+.light-theme .creator-handle,
+.light-theme .profile-display-handle,
+.light-theme .profile-stat-lbl,
+.light-theme .search-user-username,
+.light-theme .modal-user-handle,
+.light-theme .settings-item-lbl,
+.light-theme .comment-time,
+.light-theme .settings-item-desc {
+  color: #64748b !important;
+}
+
+/* Sticky top mobile headers */
+.light-theme .mobile-top-header,
+.light-theme .explore-search-header,
+.light-theme .profile-subtabs-row {
+  background: rgba(248, 250, 252, 0.85) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+.light-theme .mobile-logo {
+  color: #0f172a !important;
+}
+
+/* Buttons overrides */
+.light-theme .btn-follow-action.follow {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+}
+.light-theme .btn-follow-action.following {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Inputs and Forms */
+.light-theme input,
+.light-theme textarea,
+.light-theme select {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+.light-theme input::placeholder,
+.light-theme textarea::placeholder {
+  color: rgba(0, 0, 0, 0.4) !important;
 }

@@ -52,6 +52,11 @@ export default function FeedPage() {
 
   // Bottom menu navigation state (for active class on mobile/sidebar)
   const [activeNav, setActiveNav] = useState("Home");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") !== "light");
+
+  useEffect(() => {
+    setDarkMode(localStorage.getItem("theme") !== "light");
+  }, []);
 
   // Search input state
   const [searchQuery, setSearchQuery] = useState("");
@@ -373,9 +378,9 @@ export default function FeedPage() {
   };
 
   return (
-    <div className="feed-page-container">
+    <div className={`feed-page-container ${darkMode ? "dark" : "light-theme"}`}>
       {/* MOBILE TOP HEADER */}
-      <header className="mobile-top-header">
+      <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
         <div className="flex items-center gap-2">
           <img src={logoIcon} alt="" className="size-7 rounded-lg object-cover" />
           <span className="mobile-logo">
