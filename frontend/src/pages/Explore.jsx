@@ -168,10 +168,21 @@ export default function ExplorePage() {
         }
 
         const data = await response.json();
-        // Add follow toggle property locally
-        const processed = data.map(u => ({
-          ...u,
-          isFollowing: false // local mock state
+        // Add follow toggle status property dynamically
+        const processed = await Promise.all(data.map(async (u) => {
+          if (u.userId === currentUser.userId) {
+            return { ...u, followStatus: "SELF" };
+          }
+          try {
+            const statusRes = await fetch(`http://localhost:8080/follows/status/${u.userId}`, {
+              headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+            });
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              return { ...u, followStatus: statusData.status };
+            }
+          } catch (e) {}
+          return { ...u, followStatus: "NOT_FOLLOWING" };
         }));
         setSearchResults(processed);
       } catch (err) {
@@ -185,15 +196,33 @@ export default function ExplorePage() {
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
-  const toggleSearchFollow = (userId) => {
-    setSearchResults(prev =>
-      prev.map(user => {
-        if (user.userId === userId) {
-          return { ...user, isFollowing: !user.isFollowing };
+  const toggleSearchFollow = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/follows/toggle/${userId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
-        return user;
-      })
-    );
+      });
+      if (response.ok) {
+        const statusRes = await fetch(`http://localhost:8080/follows/status/${userId}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+        });
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          setSearchResults(prev =>
+            prev.map(user => {
+              if (user.userId === userId) {
+                return { ...user, followStatus: statusData.status };
+              }
+              return user;
+            })
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling follow from search results:", err);
+    }
   };
 
   const toggleSuggestionFollow = (id) => {
@@ -362,12 +391,14 @@ export default function ExplorePage() {
                           {user.bio && <p className="search-user-bio">{user.bio}</p>}
                         </div>
                       </div>
-                      <button
-                        className={`btn-follow-action ${user.isFollowing ? "following" : "follow"}`}
-                        onClick={() => toggleSearchFollow(user.userId)}
-                      >
-                        {user.isFollowing ? "Following" : "Follow"}
-                      </button>
+                      {user.followStatus !== "SELF" && (
+                        <button
+                          className={`btn-follow-action ${user.followStatus !== "NOT_FOLLOWING" ? "following" : "follow"}`}
+                          onClick={() => toggleSearchFollow(user.userId)}
+                        >
+                          {user.followStatus === "ACCEPTED" ? "Following" : user.followStatus === "PENDING" ? "Requested" : "Follow"}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
