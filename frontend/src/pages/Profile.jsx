@@ -53,6 +53,12 @@ export default function ProfilePage() {
   const [activeNav, setActiveNav] = useState("Profile");
   const [activeTab, setActiveTab] = useState("About");
 
+  const [profileUser, setProfileUser] = useState(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const [isFollowingProfileUser, setIsFollowingProfileUser] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [searchUrl, setSearchUrl] = useState(window.location.search);
+
   // Edit profile form states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState(currentUser?.full_name || currentUser?.fullName || "");
@@ -109,6 +115,74 @@ export default function ProfilePage() {
     setEditBio(currentUser?.bio || "");
     setEditAvatarUrl(currentUser?.profile_picture_url || currentUser?.profile_picture || "");
   }, [currentUser]);
+
+  // Listen for navigation changes (popstate and pushState)
+  useEffect(() => {
+    const handleUrlChange = () => {
+      setSearchUrl(window.location.search);
+    };
+    window.addEventListener("popstate", handleUrlChange);
+
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function () {
+      originalPushState.apply(this, arguments);
+      handleUrlChange();
+    };
+
+    return () => {
+      window.removeEventListener("popstate", handleUrlChange);
+      window.history.pushState = originalPushState;
+    };
+  }, []);
+
+  // Fetch or set profile user based on query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(searchUrl);
+    const queryUsername = params.get("username");
+
+    if (queryUsername && queryUsername !== currentUser.username) {
+      setIsOwnProfile(false);
+      setIsLoadingProfile(true);
+      fetch(`http://localhost:8080/users/username/${queryUsername}`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("User not found");
+          return res.json();
+        })
+        .then((data) => {
+          const normUser = {
+            userId: data.userId,
+            username: data.username,
+            full_name: data.full_name || data.fullName,
+            fullName: data.full_name || data.fullName,
+            bio: data.bio || "",
+            profile_picture_url: data.profile_picture_url || data.profilePictureUrl,
+            profilePicture: data.profile_picture_url || data.profilePictureUrl,
+          };
+          setProfileUser(normUser);
+          setIsLoadingProfile(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          // Fallback if not in database
+          setProfileUser({
+            userId: 999,
+            username: queryUsername,
+            full_name: queryUsername.replace(/_/g, " "),
+            bio: "🏀 Basketball Creator | Fan of LuminaVibe!",
+            profile_picture_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+          });
+          setIsLoadingProfile(false);
+        });
+    } else {
+      setIsOwnProfile(true);
+      setProfileUser(currentUser);
+      setIsLoadingProfile(false);
+    }
+  }, [searchUrl, currentUser]);
 
   // Avatar Image Upload
   const handleAvatarFileChange = async (e) => {
@@ -236,7 +310,7 @@ export default function ProfilePage() {
   };
 
   // Split bio text by newlines for bullet points
-  const bioBullets = (currentUser?.bio || "")
+  const bioBullets = (profileUser?.bio || "")
     .split("\n")
     .filter(line => line.trim().length > 0);
 
@@ -323,64 +397,91 @@ export default function ProfilePage() {
 
         {/* CENTER COLUMN (Hero Banner + Stats Grid + Tabs Panels) */}
         <main className="profile-main-column">
-          {/* Cover Hero block */}
-          <section className="profile-hero-card">
-            <div className="profile-cover-banner">
-              <div className="cover-overlay-actions">
-                <button className="cover-btn-pill" onClick={() => window.navigateTo("/feed")} title="Back to Feed">
-                  <ChevronLeft className="size-5 text-white" />
-                </button>
-                <div className="flex gap-2">
-                  <button className="cover-btn-pill" onClick={() => setShowEditModal(true)} title="Settings">
-                    <Settings className="size-5 text-white" />
-                  </button>
+          {isLoadingProfile || !profileUser ? (
+            <div className="text-center py-20 text-slate-500 font-medium">Syncing profile details...</div>
+          ) : (
+            <>
+              {/* Cover Hero block */}
+              <section className="profile-hero-card">
+                <div className="profile-cover-banner">
+                  <div className="cover-overlay-actions">
+                    <button className="cover-btn-pill" onClick={() => window.navigateTo("/feed")} title="Back to Feed">
+                      <ChevronLeft className="size-5 text-white" />
+                    </button>
+                    {isOwnProfile && (
+                      <div className="flex gap-2">
+                        <button className="cover-btn-pill" onClick={() => setShowEditModal(true)} title="Settings">
+                          <Settings className="size-5 text-white" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Avatar overlapping */}
-            <div className="profile-avatar-container">
-              <img
-                src={currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
-                alt=""
-                className="profile-avatar-img"
-              />
-            </div>
+                {/* Avatar overlapping */}
+                <div className="profile-avatar-container">
+                  <img
+                    src={profileUser?.profile_picture_url || profileUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+                    alt=""
+                    className="profile-avatar-img"
+                  />
+                </div>
 
-            {/* User Identity Info */}
-            <div className="profile-identity-box">
-              <h2 className="profile-display-name">
-                {currentUser?.full_name || currentUser?.fullName || "Creator Profile"}
-                <span className="inline-flex items-center justify-center bg-indigo-500 text-white rounded-full p-0.5" style={{ width: "16px", height: "16px", fontSize: "10px" }} title="Verified User">✓</span>
-              </h2>
-              <div className="profile-display-handle">@{currentUser?.username || "creator"}</div>
-            </div>
+                {/* User Identity Info */}
+                <div className="profile-identity-box">
+                  <h2 className="profile-display-name">
+                    {profileUser?.full_name || profileUser?.fullName || "Creator Profile"}
+                    <span className="inline-flex items-center justify-center bg-indigo-500 text-white rounded-full p-0.5" style={{ width: "16px", height: "16px", fontSize: "10px" }} title="Verified User">✓</span>
+                  </h2>
+                  <div className="profile-display-handle">@{profileUser?.username || "creator"}</div>
+                </div>
 
-            {/* Stats Counter Row */}
-            <div className="profile-stats-grid">
-              <div className="profile-stat-box" onClick={() => setActiveTab("Posts")}>
-                <span className="profile-stat-num">{userPosts.length}</span>
-                <span className="profile-stat-lbl">Posts</span>
-              </div>
-              <div className="profile-stat-box" onClick={openFollowersList}>
-                <span className="profile-stat-num">1.5K</span>
-                <span className="profile-stat-lbl">Followers</span>
-              </div>
-              <div className="profile-stat-box" onClick={openFollowingList}>
-                <span className="profile-stat-num">1.2K</span>
-                <span className="profile-stat-lbl">Following</span>
-              </div>
-            </div>
+                {/* Stats Counter Row */}
+                <div className="profile-stats-grid">
+                  <div className="profile-stat-box" onClick={() => setActiveTab("Posts")}>
+                    <span className="profile-stat-num">{userPosts.length}</span>
+                    <span className="profile-stat-lbl">Posts</span>
+                  </div>
+                  <div className="profile-stat-box" onClick={openFollowersList}>
+                    <span className="profile-stat-num">1.5K</span>
+                    <span className="profile-stat-lbl">Followers</span>
+                  </div>
+                  <div className="profile-stat-box" onClick={openFollowingList}>
+                    <span className="profile-stat-num">1.2K</span>
+                    <span className="profile-stat-lbl">Following</span>
+                  </div>
+                </div>
 
-            {/* Action Buttons */}
-            <div className="profile-actions-panel">
-              <button className="profile-btn-primary" onClick={() => setShowEditModal(true)}>
-                Edit profile
-              </button>
-              <button className="profile-btn-secondary" onClick={() => setActiveTab("Insights")}>
-                Insights
-              </button>
-            </div>
+                {/* Action Buttons */}
+                <div className="profile-actions-panel">
+                  {isOwnProfile ? (
+                    <>
+                      <button className="profile-btn-primary" onClick={() => setShowEditModal(true)}>
+                        Edit profile
+                      </button>
+                      <button className="profile-btn-secondary" onClick={() => setActiveTab("Insights")}>
+                        Insights
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className={`profile-btn-primary ${isFollowingProfileUser ? "following" : ""}`}
+                        onClick={() => setIsFollowingProfileUser(!isFollowingProfileUser)}
+                        style={{
+                          background: isFollowingProfileUser ? "rgba(0, 0, 0, 0.05)" : "#6366f1",
+                          color: isFollowingProfileUser ? "#0f172a" : "#ffffff",
+                          border: isFollowingProfileUser ? "1px solid rgba(0, 0, 0, 0.08)" : "none"
+                        }}
+                      >
+                        {isFollowingProfileUser ? "Following" : "Follow"}
+                      </button>
+                      <button className="profile-btn-secondary" onClick={() => window.navigateTo("/feed")}>
+                        Message
+                      </button>
+                    </>
+                  )}
+                </div>
 
             {/* Horizontal Sub-Tabs Row */}
             <div className="profile-subtabs-row">
@@ -413,7 +514,7 @@ export default function ProfilePage() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-slate-500 text-sm italic">No bio written yet. Click Edit Profile to add one!</div>
+                  <div className="text-slate-500 text-sm italic">No bio written yet.</div>
                 )}
               </div>
 
@@ -515,7 +616,9 @@ export default function ProfilePage() {
               ))}
             </section>
           )}
-        </main>
+        </>
+      )}
+    </main>
 
         {/* RIGHT SIDEBAR (Desktop Suggested Follow list) */}
         <aside className="sidebar-right">
@@ -748,13 +851,13 @@ export default function ProfilePage() {
                 <div className="lightbox-creator-row">
                   <div className="lightbox-creator-left">
                     <img
-                      src={currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"}
+                      src={profileUser?.profile_picture_url || profileUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"}
                       alt=""
                       className="lightbox-creator-avatar"
                     />
                     <div>
-                      <div className="lightbox-creator-name">{currentUser?.full_name || currentUser?.fullName || "Creator Profile"}</div>
-                      <div className="lightbox-creator-handle">@{currentUser?.username || "creator"}</div>
+                      <div className="lightbox-creator-name">{profileUser?.full_name || profileUser?.fullName || "Creator Profile"}</div>
+                      <div className="lightbox-creator-handle">@{profileUser?.username || "creator"}</div>
                     </div>
                   </div>
                   <button className="lightbox-close-btn" onClick={() => setSelectedPost(null)}>

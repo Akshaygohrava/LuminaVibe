@@ -7,4 +7,5 @@ public interface UserService {
     UserDto register(UserDto userDto);
     List<UserDto> searchUsers(String query);
     UserDto updateUser(Integer userId, UserDto userDto);
+    UserDto getUserByUsername(String username);
 }

@@ -346,7 +346,11 @@ export default function ExplorePage() {
                 <div className="search-results-list">
                   {searchResults.map((user) => (
                     <div key={user.userId} className="search-user-card">
-                      <div className="search-user-left">
+                      <div
+                        className="search-user-left"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => window.navigateTo(`/profile?username=${user.username}`)}
+                      >
                         <img
                           src={user.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"}
                           alt=""

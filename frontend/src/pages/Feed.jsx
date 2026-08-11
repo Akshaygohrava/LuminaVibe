@@ -479,7 +479,11 @@ export default function FeedPage() {
                 <article key={post.id} className="feed-card-item">
                   {/* Card Header */}
                   <div className="card-header">
-                    <div className="card-header-left">
+                    <div
+                      className="card-header-left"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => window.navigateTo(`/profile?username=${post.user.username}`)}
+                    >
                       <img
                         src={post.user.avatar}
                         alt={`${post.user.name}'s avatar`}
