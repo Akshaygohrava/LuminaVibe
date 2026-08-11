@@ -17,6 +17,7 @@ import {
   User,
   Check,
   ChevronLeft,
+  ChevronRight,
   Users,
   Award,
   BarChart2,
@@ -94,13 +95,17 @@ export default function ProfilePage() {
     { id: 5, name: "Aditya Prasodjo", handle: "aditya_prasodjo", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop" },
   ]);
 
-  // Mock User Posts
-  const userPosts = [
-    { id: 1, title: "Training Session", imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&auto=format&fit=crop", likes: 843, comments: 120, caption: "Court views tonight. Working on three-point releases and acceleration drills. 💪🏀" },
-    { id: 2, title: "Match Day", imageUrl: "https://images.unsplash.com/photo-1519766304817-4f37bda74a27?w=600&auto=format&fit=crop", likes: 1102, comments: 245, caption: "Championship playoffs! Team chemistry was on point today. MVP vibes. 🏆🔥" },
-    { id: 3, title: "Pre-Game Fuel", imageUrl: "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=600&auto=format&fit=crop", likes: 432, comments: 40, caption: "Healthy breakfast fuel: double espresso and oatmeal before court setup. ☕🍳" },
-    { id: 4, title: "New Sneakers", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop", likes: 984, comments: 189, caption: "Unboxing these custom basketball treads. The neon contrasts are hit hits! 👟✨" },
-  ];
+  // Dynamic User Posts state (fetched from database based on profileUser)
+  const [userPosts, setUserPosts] = useState([]);
+  const [isLoadingUserPosts, setIsLoadingUserPosts] = useState(true);
+
+  // Lightbox carousel active index tracking
+  const [lightboxSlideIdx, setLightboxSlideIdx] = useState(0);
+
+  // Reset lightbox slide index when selected post is clicked
+  useEffect(() => {
+    setLightboxSlideIdx(0);
+  }, [selectedPost]);
 
   // Mock Bookmarked Posts
   const bookmarkedPosts = [
@@ -183,6 +188,54 @@ export default function ProfilePage() {
       setIsLoadingProfile(false);
     }
   }, [searchUrl, currentUser]);
+
+  // Fetch user posts dynamically based on profileUser
+  useEffect(() => {
+    if (!profileUser || profileUser.userId === 0) {
+      setIsLoadingUserPosts(false);
+      return;
+    }
+    setIsLoadingUserPosts(true);
+    fetch(`http://localhost:8080/posts/user/${profileUser.userId}`, {
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load user posts.");
+        return res.json();
+      })
+      .then((data) => {
+        const normalized = data.map((p) => {
+          const mappedMedia = (p.media_list || []).map((m) => ({
+            mediaId: m.media_id || m.mediaId,
+            mediaUrl: m.media_url || m.mediaUrl,
+            mediaType: m.media_type || m.mediaType || "image/jpeg"
+          }));
+          return {
+            id: p.post_id,
+            title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
+            imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
+            mediaList: mappedMedia,
+            likes: Math.floor(Math.random() * 200) + 14,
+            comments: 0,
+            caption: p.content || "",
+            location: p.location || "",
+          };
+        });
+        setUserPosts(normalized);
+        setIsLoadingUserPosts(false);
+      })
+      .catch((err) => {
+        console.error("Error loading user posts:", err);
+        // Fallback mockup
+        setUserPosts([
+          { id: 1, title: "Training Session", imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&auto=format&fit=crop", likes: 843, comments: 120, caption: "Court views tonight. Working on three-point releases and acceleration drills. 💪🏀", mediaList: [] },
+          { id: 2, title: "Match Day", imageUrl: "https://images.unsplash.com/photo-1519766304817-4f37bda74a27?w=600&auto=format&fit=crop", likes: 1102, comments: 245, caption: "Championship playoffs! Team chemistry was on point today. MVP vibes. 🏆🔥", mediaList: [] },
+        ]);
+        setIsLoadingUserPosts(false);
+      });
+  }, [profileUser]);
 
   // Avatar Image Upload
   const handleAvatarFileChange = async (e) => {
@@ -840,11 +893,102 @@ export default function ProfilePage() {
         <div className="lightbox-modal-overlay" onClick={() => setSelectedPost(null)}>
           <div className="lightbox-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="lightbox-image-panel">
-              <img
-                src={selectedPost.imageUrl}
-                alt={selectedPost.title}
-                className="lightbox-expanded-img"
-              />
+              {selectedPost.mediaList && selectedPost.mediaList.length > 0 ? (
+                selectedPost.mediaList.length === 1 ? (
+                  /* Single media view inside lightbox */
+                  selectedPost.mediaList[0].mediaType.startsWith("video/") ? (
+                    <video
+                      src={selectedPost.mediaList[0].mediaUrl}
+                      controls
+                      className="w-full h-full object-cover"
+                      style={{ maxHeight: "100vh" }}
+                    />
+                  ) : (
+                    <img
+                      src={selectedPost.mediaList[0].mediaUrl}
+                      alt={selectedPost.title}
+                      className="lightbox-expanded-img"
+                    />
+                  )
+                ) : (
+                  /* Instagram-style multiple files carousel view inside lightbox */
+                  <div className="post-carousel-wrapper w-full h-full flex items-center justify-center" style={{ minHeight: "350px" }}>
+                    <div
+                      className="post-carousel-track h-full"
+                      style={{
+                        transform: `translateX(-${lightboxSlideIdx * 100}%)`,
+                        transition: "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                        display: "flex",
+                        width: `${selectedPost.mediaList.length * 100}%`
+                      }}
+                    >
+                      {selectedPost.mediaList.map((media, idx) => (
+                        <div
+                          key={media.mediaId || idx}
+                          className="post-carousel-slide flex items-center justify-center"
+                          style={{ width: `${100 / selectedPost.mediaList.length}%` }}
+                        >
+                          {media.mediaType.startsWith("video/") ? (
+                            <video
+                              src={media.mediaUrl}
+                              controls
+                              className="w-full h-full object-contain"
+                              style={{ maxHeight: "100vh" }}
+                            />
+                          ) : (
+                            <img
+                              src={media.mediaUrl}
+                              alt={`Post slide ${idx + 1}`}
+                              className="lightbox-expanded-img object-contain"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Left Chevron */}
+                    {lightboxSlideIdx > 0 && (
+                      <button
+                        className="carousel-nav-btn prev"
+                        onClick={() => setLightboxSlideIdx(prev => Math.max(prev - 1, 0))}
+                        aria-label="Previous slide"
+                      >
+                        <ChevronLeft className="size-4" />
+                      </button>
+                    )}
+
+                    {/* Right Chevron */}
+                    {lightboxSlideIdx < selectedPost.mediaList.length - 1 && (
+                      <button
+                        className="carousel-nav-btn next"
+                        onClick={() => setLightboxSlideIdx(prev => Math.min(prev + 1, selectedPost.mediaList.length - 1))}
+                        aria-label="Next slide"
+                      >
+                        <ChevronRight className="size-4" />
+                      </button>
+                    )}
+
+                    {/* Dots Indicators */}
+                    <div className="carousel-dots-indicator">
+                      {selectedPost.mediaList.map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={`carousel-dot ${
+                            lightboxSlideIdx === idx ? "active" : ""
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              ) : (
+                /* Fallback mock post image */
+                <img
+                  src={selectedPost.imageUrl}
+                  alt={selectedPost.title}
+                  className="lightbox-expanded-img"
+                />
+              )}
             </div>
             <div className="lightbox-details-panel">
               <div>

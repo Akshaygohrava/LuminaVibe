@@ -19,6 +19,8 @@ import {
   Flame,
   User,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
@@ -57,8 +59,13 @@ export default function FeedPage() {
   // Create post modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPostCaption, setNewPostCaption] = useState("");
-  const [newPostImage, setNewPostImage] = useState("");
   const [newPostLocation, setNewPostLocation] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Carousel slider active index tracking per post
+  const [carouselIndices, setCarouselIndices] = useState({});
 
   // Stories viewer state
   const [selectedStory, setSelectedStory] = useState(null);
@@ -71,65 +78,9 @@ export default function FeedPage() {
     { id: 3, name: "Calvin Klein", handle: "calvin_k", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop", isFollowing: true },
   ]);
 
-  // Feed posts state
-  const [posts, setPosts] = useState([
-    {
-      id: 101,
-      user: {
-        name: "Akmal Nasrullah",
-        username: "akmalnsrllh",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop",
-      },
-      location: "Bekasi",
-      time: "1 mins ago",
-      imageUrl: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&auto=format&fit=crop",
-      likesCount: 349,
-      isLiked: false,
-      isBookmarked: false,
-      caption: "When life gives you limes, arrange them in a zesty flatlay and create a 'lime-light' masterpiece! Flatlays are always a vibe.",
-      comments: [
-        { id: 1, username: "randybchtr", text: "Wow, this looks fresh and zesty!", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop", time: "1m ago" },
-        { id: 2, username: "calista33", text: "Love the yellow aesthetic!", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop", time: "2m ago" }
-      ],
-      showComments: false,
-    },
-    {
-      id: 102,
-      user: {
-        name: "Claire GD",
-        username: "calire.gd",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop",
-      },
-      location: "Bali, Indonesia",
-      time: "2 hours ago",
-      imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop",
-      likesCount: 1420,
-      isLiked: true,
-      isBookmarked: true,
-      caption: "Coffee first, schemes later. Cozy cafes in Bali always inspire the best creations. Who is down for a coffee chat this weekend? ☕✨",
-      comments: [
-        { id: 1, username: "azizahrh", text: "Save a cup of cold brew for me!", avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop", time: "1h ago" }
-      ],
-      showComments: false,
-    },
-    {
-      id: 103,
-      user: {
-        name: "Aditya Prasodjo",
-        username: "aditya_prasodjo",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop",
-      },
-      location: "Surabaya, Indonesia",
-      time: "5 hours ago",
-      imageUrl: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=800&auto=format&fit=crop",
-      likesCount: 9812,
-      isLiked: false,
-      isBookmarked: false,
-      caption: "Lost in the neon glow of Surabaya nights. Filmmaking in the rainy weather produces some of the most cinematic shots. 🎬🌧️",
-      comments: [],
-      showComments: false,
-    }
-  ]);
+  // Feed posts state (fetched dynamically from backend database)
+  const [posts, setPosts] = useState([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
 
   // Stories mock data
   const stories = [
@@ -204,6 +155,91 @@ export default function FeedPage() {
     };
   }, [selectedStory]);
 
+  // Helper to format post timestamps
+  const formatPostTime = (timeStr) => {
+    if (!timeStr) return "Just now";
+    try {
+      const date = new Date(timeStr);
+      const seconds = Math.floor((new Date() - date) / 1000);
+      if (seconds < 60) return "Just now";
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    } catch (e) {
+      return "Recently";
+    }
+  };
+
+  // Fetch posts from backend database
+  const loadAllPosts = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/posts", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (!res.ok) throw new Error("Failed to load posts");
+      const data = await res.json();
+      
+      const normalized = data.map(p => ({
+        id: p.post_id,
+        user: {
+          name: p.user?.full_name || p.user?.fullName || "Lumina Creator",
+          username: p.user?.username || "creator",
+          avatar: p.user?.profile_picture_url || p.user?.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+        },
+        location: p.location || "",
+        time: formatPostTime(p.created_at),
+        mediaList: (p.media_list || []).map(m => ({
+          mediaId: m.media_id || m.mediaId,
+          mediaUrl: m.media_url || m.mediaUrl,
+          mediaType: m.media_type || m.mediaType || "image/jpeg"
+        })),
+        likesCount: Math.floor(Math.random() * 500) + 12,
+        isLiked: false,
+        isBookmarked: false,
+        caption: p.content || "",
+        comments: [],
+        showComments: false
+      }));
+      setPosts(normalized);
+    } catch (err) {
+      console.error("Error loading posts:", err);
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllPosts();
+  }, []);
+
+  // Handle preview images / videos before post creation
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setSelectedFiles(prev => [...prev, ...files]);
+
+    const newPreviews = files.map(file => ({
+      url: URL.createObjectURL(file),
+      type: file.type,
+      name: file.name
+    }));
+    setPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => {
+      URL.revokeObjectURL(prev[index].url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   // Action handlers
   const handleLikePost = (postId) => {
     setPosts((prevPosts) =>
@@ -267,36 +303,47 @@ export default function FeedPage() {
     );
   };
 
-  const handleCreatePost = (e) => {
+  const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostCaption.trim()) return;
 
-    // Default image if user hasn't provided one
-    const imageToUse = newPostImage.trim() || "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop";
+    setIsSubmitting(true);
 
-    const newPost = {
-      id: Date.now(),
-      user: {
-        name: currentUser.full_name || currentUser.name || "My Creator Account",
-        username: currentUser.username || "creator_profile",
-        avatar: currentUser.profile_picture_url || currentUser.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-      },
-      location: newPostLocation.trim() || "World Grid",
-      time: "Just now",
-      imageUrl: imageToUse,
-      likesCount: 0,
-      isLiked: false,
-      isBookmarked: false,
-      caption: newPostCaption,
-      comments: [],
-      showComments: false,
-    };
+    const formData = new FormData();
+    formData.append("content", newPostCaption.trim());
+    formData.append("location", newPostLocation.trim());
 
-    setPosts([newPost, ...posts]);
-    setNewPostCaption("");
-    setNewPostImage("");
-    setNewPostLocation("");
-    setShowCreateModal(false);
+    selectedFiles.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    try {
+      const response = await fetch("http://localhost:8080/posts", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload your post.");
+      }
+
+      setNewPostCaption("");
+      setNewPostLocation("");
+      setSelectedFiles([]);
+      previews.forEach((p) => URL.revokeObjectURL(p.url));
+      setPreviews([]);
+      setShowCreateModal(false);
+
+      // Refresh post list
+      await loadAllPosts();
+    } catch (err) {
+      alert("Error sharing post: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleFollowSuggestion = (suggestionId) => {
@@ -505,14 +552,118 @@ export default function FeedPage() {
                     </button>
                   </div>
 
-                  {/* Card Post Media Image */}
+                  {/* Card Post Media Image / Carousel */}
                   <div className="post-media-container">
-                    <img
-                      src={post.imageUrl}
-                      alt="Post content"
-                      className="post-media-img"
-                      loading="lazy"
-                    />
+                    {post.mediaList && post.mediaList.length > 0 ? (
+                      post.mediaList.length === 1 ? (
+                        /* Single media view */
+                        post.mediaList[0].mediaType.startsWith("video/") ? (
+                          <video
+                            src={post.mediaList[0].mediaUrl}
+                            controls
+                            className="post-media-video w-full"
+                            style={{ maxHeight: "520px", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <img
+                            src={post.mediaList[0].mediaUrl}
+                            alt="Post media content"
+                            className="post-media-img"
+                            loading="lazy"
+                          />
+                        )
+                      ) : (
+                        /* Instagram-style multiple files carousel view */
+                        <div className="post-carousel-wrapper">
+                          <div
+                            className="post-carousel-track"
+                            style={{
+                              transform: `translateX(-${(carouselIndices[post.id] || 0) * 100}%)`,
+                              transition: "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                              display: "flex",
+                              width: `${post.mediaList.length * 100}%`
+                            }}
+                          >
+                            {post.mediaList.map((media, idx) => (
+                              <div
+                                key={media.mediaId || idx}
+                                className="post-carousel-slide"
+                                style={{ width: `${100 / post.mediaList.length}%` }}
+                              >
+                                {media.mediaType.startsWith("video/") ? (
+                                  <video
+                                    src={media.mediaUrl}
+                                    controls
+                                    className="w-full h-full object-cover"
+                                    style={{ maxHeight: "520px" }}
+                                  />
+                                ) : (
+                                  <img
+                                    src={media.mediaUrl}
+                                    alt={`Post slide ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    style={{ maxHeight: "520px" }}
+                                    loading="lazy"
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Left Arrow */}
+                          {(carouselIndices[post.id] || 0) > 0 && (
+                            <button
+                              className="carousel-nav-btn prev"
+                              onClick={() =>
+                                setCarouselIndices((prev) => ({
+                                  ...prev,
+                                  [post.id]: Math.max((prev[post.id] || 0) - 1, 0)
+                                }))
+                              }
+                              aria-label="Previous slide"
+                            >
+                              <ChevronLeft className="size-4" />
+                            </button>
+                          )}
+
+                          {/* Right Arrow */}
+                          {(carouselIndices[post.id] || 0) < post.mediaList.length - 1 && (
+                            <button
+                              className="carousel-nav-btn next"
+                              onClick={() =>
+                                setCarouselIndices((prev) => ({
+                                  ...prev,
+                                  [post.id]: Math.min((prev[post.id] || 0) + 1, post.mediaList.length - 1)
+                                }))
+                              }
+                              aria-label="Next slide"
+                            >
+                              <ChevronRight className="size-4" />
+                            </button>
+                          )}
+
+                          {/* Dots Indicators */}
+                          <div className="carousel-dots-indicator">
+                            {post.mediaList.map((_, idx) => (
+                              <span
+                                key={idx}
+                                className={`carousel-dot ${
+                                  (carouselIndices[post.id] || 0) === idx ? "active" : ""
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      /* Fallback mock post image */
+                      <img
+                        src={post.imageUrl}
+                        alt="Post content"
+                        className="post-media-img"
+                        loading="lazy"
+                      />
+                    )}
                   </div>
 
                   {/* Interactions Button Bar */}
@@ -754,14 +905,48 @@ export default function FeedPage() {
               </div>
 
               <div className="form-field-wrapper">
-                <label className="form-label-title">Image URL (Optional)</label>
+                <label className="form-label-title">Photos or Videos (Select multiple if desired)</label>
                 <input
-                  type="url"
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
                   className="form-text-input"
-                  placeholder="Paste a photo URL (e.g. from Unsplash)"
-                  value={newPostImage}
-                  onChange={(e) => setNewPostImage(e.target.value)}
+                  style={{ display: "none" }}
+                  id="post-file-upload-input"
                 />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("post-file-upload-input").click()}
+                  className="form-text-input text-left flex items-center justify-between"
+                  style={{ background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.45)" }}
+                >
+                  <span>Select media files...</span>
+                  <span className="text-[10px] bg-indigo-600 text-white py-1 px-2.5 rounded-md font-semibold">Browse</span>
+                </button>
+
+                {/* Horizontal Scrollable Previews list */}
+                {previews.length > 0 && (
+                  <div className="create-post-previews-bar mt-3">
+                    {previews.map((prev, idx) => (
+                      <div key={idx} className="create-post-preview-card">
+                        {prev.type.startsWith("video/") ? (
+                          <video src={prev.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={prev.url} alt="" className="w-full h-full object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          className="create-post-preview-remove"
+                          onClick={() => removeFile(idx)}
+                          aria-label="Remove media"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="form-field-wrapper">
@@ -779,10 +964,10 @@ export default function FeedPage() {
                 <button
                   type="submit"
                   className="btn-submit-post"
-                  disabled={!newPostCaption.trim()}
+                  disabled={isSubmitting || !newPostCaption.trim()}
                 >
                   <Sparkles className="size-4" />
-                  Share Vibe
+                  {isSubmitting ? "Uploading Vibe..." : "Share Vibe"}
                 </button>
               </div>
             </form>
