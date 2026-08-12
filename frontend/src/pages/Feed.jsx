@@ -15,6 +15,7 @@ import {
   Settings,
   MapPin,
   X,
+  Check,
   Globe,
   Flame,
   User,
@@ -60,6 +61,93 @@ export default function FeedPage() {
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const [followRequests, setFollowRequests] = useState([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [suggestedCreators, setSuggestedCreators] = useState([
+    { userId: 101, username: "randybchtr", fullName: "Randy Bachtiar", profilePictureUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop", bio: "Creator & Visual Director", followStatus: "NOT_FOLLOWING" },
+    { userId: 102, username: "sarah_c", fullName: "Sarah Connor", profilePictureUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop", bio: "Tech & Coding Enthusiast", followStatus: "NOT_FOLLOWING" },
+    { userId: 103, username: "calire.gd", fullName: "Calire GD", profilePictureUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop", bio: "Motion designer & photographer", followStatus: "NOT_FOLLOWING" }
+  ]);
+
+  useEffect(() => {
+    if (activeTab === "For You") {
+      loadFollowRequests();
+    }
+  }, [activeTab]);
+
+  const loadFollowRequests = async () => {
+    setIsLoadingRequests(true);
+    try {
+      const res = await fetch("http://localhost:8080/follows/requests", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFollowRequests(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
+  const handleAcceptRequest = async (followerId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/follows/accept/${followerId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        loadFollowRequests();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectRequest = async (followerId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/follows/reject/${followerId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        loadFollowRequests();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleFollowSuggestion = async (userId, idx) => {
+    try {
+      const res = await fetch(`http://localhost:8080/follows/toggle/${userId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestedCreators(prev => prev.map((item, i) => {
+          if (i === idx) {
+            return { ...item, followStatus: data.status };
+          }
+          return item;
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     const loadUnreadCounts = async () => {
@@ -688,8 +776,10 @@ export default function FeedPage() {
             </div>
           </div>
 
-          {/* Stories Horizontal Bar */}
-          <section className="stories-section">
+          {activeTab === "Home" ? (
+            <>
+              {/* Stories Horizontal Bar */}
+              <section className="stories-section">
             <div className="stories-carousel">
               {stories.map((story) => (
                 <div
@@ -984,7 +1074,87 @@ export default function FeedPage() {
               );
             })}
           </section>
-        </main>
+        </>
+      ) : (
+        <div className="for-you-feed-content" style={{ padding: "0 8px" }}>
+          {/* Pending Follow Requests */}
+          <div className="for-you-requests-section" style={{ marginBottom: "32px" }}>
+            <h3 className="section-title-label" style={{ fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255, 255, 255, 0.45)", fontWeight: "700", marginBottom: "16px" }}>
+              Pending Follow Requests
+            </h3>
+            {isLoadingRequests ? (
+              <div className="text-center py-6 text-slate-500 text-sm">Loading requests...</div>
+            ) : followRequests.length === 0 ? (
+              <div className="empty-requests-card" style={{ padding: "20px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--glass-border)", borderRadius: "16px", textAlign: "center", fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.4)" }}>
+                No pending requests. Your profile is active and fully visible.
+              </div>
+            ) : (
+              <div className="requests-vertical-list" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {followRequests.map((req) => (
+                  <div key={req.follower.userId} className="request-card-row" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid rgba(255, 255, 255, 0.04)", borderRadius: "16px" }}>
+                    <img 
+                      src={req.follower.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"} 
+                      alt="" 
+                      className="request-avatar"
+                      style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover" }}
+                    />
+                    <div className="request-info" style={{ flexGrow: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+                      <span className="request-fullname" style={{ fontWeight: 600, color: "#ffffff", fontSize: "0.85rem" }}>{req.follower.fullName || req.follower.username}</span>
+                      <span className="request-username" style={{ fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.4)" }}>@{req.follower.username}</span>
+                    </div>
+                    <div className="request-actions" style={{ display: "flex", gap: "8px" }}>
+                      <button 
+                        className="btn-action-accept" 
+                        style={{ border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justify: "center", background: "var(--lime-neon)", color: "#000000", boxShadow: "0 2px 8px var(--lime-neon-glow)", cursor: "pointer" }}
+                        onClick={() => handleAcceptRequest(req.follower.userId)}
+                        title="Accept Request"
+                      >
+                        <Check className="size-4" />
+                      </button>
+                      <button 
+                        className="btn-action-reject" 
+                        style={{ border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justify: "center", background: "rgba(255, 255, 255, 0.05)", border: "1px solid var(--glass-border)", color: "#ffffff", cursor: "pointer" }}
+                        onClick={() => handleRejectRequest(req.follower.userId)}
+                        title="Decline Request"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Suggested Creators */}
+          <div className="for-you-suggestions-section">
+            <div className="suggestions-header-bar flex items-center gap-2" style={{ marginBottom: "16px" }}>
+              <Sparkles className="size-4 text-lime-400" />
+              <h3 className="section-title-label m-0" style={{ fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255, 255, 255, 0.45)", fontWeight: "700" }}>
+                Suggested Creators
+              </h3>
+            </div>
+            <div className="suggestions-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px" }}>
+              {suggestedCreators.map((item, idx) => (
+                <div key={item.userId} className="suggestion-grid-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 16px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--glass-border)", borderRadius: "20px" }}>
+                  <img src={item.profilePictureUrl} alt="" className="suggestion-card-avatar" style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover", marginBottom: "12px" }} />
+                  <span className="suggestion-card-name" style={{ fontWeight: 600, color: "#ffffff", fontSize: "0.85rem", marginBottom: "2px" }}>{item.fullName}</span>
+                  <span className="suggestion-card-handle" style={{ fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.4)", marginBottom: "8px" }}>@{item.username}</span>
+                  <p className="suggestion-card-bio" style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.5)", marginBottom: "16px", height: "32px", overflow: "hidden" }}>{item.bio}</p>
+                  <button 
+                    className={`btn-follow-suggestion ${item.followStatus !== "NOT_FOLLOWING" ? "following" : "follow"}`}
+                    style={{ width: "100%", border: "none", padding: "8px 0", borderRadius: "10px", fontWeight: "600", fontSize: "0.8rem", cursor: "pointer", background: item.followStatus !== "NOT_FOLLOWING" ? "rgba(255, 255, 255, 0.05)" : "var(--lime-neon)", color: item.followStatus !== "NOT_FOLLOWING" ? "#ffffff" : "#000000" }}
+                    onClick={() => handleToggleFollowSuggestion(item.userId, idx)}
+                  >
+                    {item.followStatus === "ACCEPTED" ? "Following" : item.followStatus === "PENDING" ? "Requested" : "Follow"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
 
         {/* RIGHT SIDEBAR (Search, Trends, Follows) */}
         <aside className="sidebar-right">
