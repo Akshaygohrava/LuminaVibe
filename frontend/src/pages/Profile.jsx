@@ -583,6 +583,8 @@ export default function ProfilePage() {
                     window.navigateTo("/profile");
                   } else if (item.name === "Settings") {
                     window.navigateTo("/settings");
+                  } else if (item.name === "Messages") {
+                    window.navigateTo("/messages");
                   }
                 }}
               >

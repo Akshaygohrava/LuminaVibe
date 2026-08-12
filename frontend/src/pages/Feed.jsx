@@ -570,7 +570,7 @@ export default function FeedPage() {
             <Bell className="size-5" />
             <span className="icon-badge">3</span>
           </button>
-          <button className="icon-badge-btn" aria-label="Messages" onClick={() => setActiveNav("Messages")}>
+          <button className="icon-badge-btn" aria-label="Messages" onClick={() => window.navigateTo("/messages")}>
             <MessageSquare className="size-5" />
             <span className="icon-badge">5</span>
           </button>
@@ -607,6 +607,8 @@ export default function FeedPage() {
                     window.navigateTo("/profile");
                   } else if (item.name === "Settings") {
                     window.navigateTo("/settings");
+                  } else if (item.name === "Messages") {
+                    window.navigateTo("/messages");
                   }
                 }}
               >

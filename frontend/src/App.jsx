@@ -6,6 +6,7 @@ import FeedPage from './pages/Feed'
 import ExplorePage from './pages/Explore'
 import ProfilePage from './pages/Profile'
 import SettingsPage from './pages/Settings'
+import MessagesPage from './pages/Messages'
 import './App.css'
 
 function App() {
@@ -69,6 +70,14 @@ function App() {
       return null
     }
     return <SettingsPage />
+  }
+
+  if (path === '/messages') {
+    if (!isAuthenticated()) {
+      setTimeout(() => navigate('/'), 0)
+      return null
+    }
+    return <MessagesPage />
   }
 
   if (path === '/signin') {
