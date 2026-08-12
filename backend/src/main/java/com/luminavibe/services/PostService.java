@@ -8,4 +8,6 @@ public interface PostService {
     PostDto createPost(Integer userId, String content, String location, MultipartFile[] files);
     List<PostDto> getAllPosts();
     List<PostDto> getPostsByUser(Integer userId);
+    PostDto updatePost(Integer userId, Integer postId, String content, String location);
+    void deletePost(Integer userId, Integer postId);
 }

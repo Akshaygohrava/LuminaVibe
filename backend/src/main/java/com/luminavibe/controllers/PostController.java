@@ -43,4 +43,32 @@ public class PostController {
     public ResponseEntity<List<PostDto>> getPostsByUser(@PathVariable("userId") Integer userId) {
         return ResponseEntity.ok(postService.getPostsByUser(userId));
     }
+
+    @PutMapping("/{postId}")
+    public ResponseEntity<PostDto> updatePost(
+            @PathVariable("postId") Integer postId,
+            @RequestBody PostUpdateRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+        PostDto updated = postService.updatePost(user.getUserId(), postId, request.getContent(), request.getLocation());
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(@PathVariable("postId") Integer postId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+        postService.deletePost(user.getUserId(), postId);
+        return ResponseEntity.noContent().build();
+    }
+
+    public static class PostUpdateRequest {
+        private String content;
+        private String location;
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+    }
 }

@@ -69,6 +69,25 @@ export default function FeedPage() {
   const [previews, setPreviews] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Post management states
+  const [activePostMenuId, setActivePostMenuId] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!event.target.closest(".post-options-container")) {
+        setActivePostMenuId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   // Carousel slider active index tracking per post
   const [carouselIndices, setCarouselIndices] = useState({});
 
@@ -351,6 +370,79 @@ export default function FeedPage() {
     }
   };
 
+  const togglePostMenu = (postId) => {
+    setActivePostMenuId((prev) => (prev === postId ? null : postId));
+  };
+
+  const handleStartEditPost = (post) => {
+    setEditingPost(post);
+    setEditCaption(post.caption || "");
+    setEditLocation(post.location || "");
+    setShowEditModal(true);
+    setActivePostMenuId(null);
+  };
+
+  const handleUpdatePost = async (e) => {
+    e.preventDefault();
+    if (!editCaption.trim() || !editingPost) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`http://localhost:8080/posts/${editingPost.id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: editCaption.trim(),
+          location: editLocation.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update post.");
+      }
+
+      setShowEditModal(false);
+      setEditingPost(null);
+      setEditCaption("");
+      setEditLocation("");
+      
+      // Refresh posts
+      await loadAllPosts();
+    } catch (err) {
+      alert("Error updating post: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeletePostClick = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      const response = await fetch(`http://localhost:8080/posts/${postId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete post.");
+      }
+
+      // Close menu
+      setActivePostMenuId(null);
+
+      // Refresh posts
+      await loadAllPosts();
+    } catch (err) {
+      alert("Error deleting post: " + err.message);
+    }
+  };
+
   const toggleFollowSuggestion = (suggestionId) => {
     setSuggestions((prev) =>
       prev.map((sugg) => {
@@ -552,9 +644,28 @@ export default function FeedPage() {
                         </div>
                       </div>
                     </div>
-                    <button className="card-header-right-btn" aria-label="More options">
-                      <MoreHorizontal className="size-5" />
-                    </button>
+                    <div className="post-options-container">
+                      <button 
+                        className="card-header-right-btn" 
+                        aria-label="More options"
+                        onClick={() => togglePostMenu(post.id)}
+                      >
+                        <MoreHorizontal className="size-5" />
+                      </button>
+
+                      {activePostMenuId === post.id && (
+                        <div className="post-options-menu">
+                          {currentUser?.username === post.user.username ? (
+                            <>
+                              <button type="button" onClick={() => handleStartEditPost(post)}>Edit Post</button>
+                              <button type="button" onClick={() => handleDeletePostClick(post.id)} className="delete-option">Delete Post</button>
+                            </>
+                          ) : (
+                            <button type="button" onClick={() => alert("Reported post successfully")}>Report Post</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Card Post Media Image / Carousel */}
@@ -924,7 +1035,11 @@ export default function FeedPage() {
                   type="button"
                   onClick={() => document.getElementById("post-file-upload-input").click()}
                   className="form-text-input text-left flex items-center justify-between"
-                  style={{ background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.45)" }}
+                  style={{ 
+                    background: darkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", 
+                    color: darkMode ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)",
+                    borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+                  }}
                 >
                   <span>Select media files...</span>
                   <span className="text-[10px] bg-indigo-600 text-white py-1 px-2.5 rounded-md font-semibold">Browse</span>
@@ -973,6 +1088,55 @@ export default function FeedPage() {
                 >
                   <Sparkles className="size-4" />
                   {isSubmitting ? "Uploading Vibe..." : "Share Vibe"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT POST */}
+      {showEditModal && editingPost && (
+        <div className="modal-overlay-bg" onClick={() => { setShowEditModal(false); setEditingPost(null); }}>
+          <div className="modal-content-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Edit Vibe</span>
+              <button className="modal-close-btn" onClick={() => { setShowEditModal(false); setEditingPost(null); }}>
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePost}>
+              <div className="form-field-wrapper">
+                <label className="form-label-title">Caption</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="Update your caption..."
+                  value={editCaption}
+                  onChange={(e) => setEditCaption(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-field-wrapper">
+                <label className="form-label-title">Location</label>
+                <input
+                  type="text"
+                  className="form-text-input"
+                  placeholder="e.g. Jakarta, Indonesia"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                />
+              </div>
+
+              <div className="form-submit-btn-bar">
+                <button
+                  type="submit"
+                  className="btn-submit-post"
+                  disabled={isSubmitting || !editCaption.trim()}
+                >
+                  <Sparkles className="size-4" />
+                  {isSubmitting ? "Updating Vibe..." : "Save Changes"}
                 </button>
               </div>
             </form>

@@ -1573,6 +1573,7 @@
 .light-theme .search-user-card,
 .light-theme .settings-card,
 .light-theme .modal-overlay-list,
+.light-theme .modal-content-panel,
 .light-theme .create-post-modal-content,
 .light-theme .profile-info-card,
 .light-theme .insights-stats-grid .insight-metric-card,
@@ -1704,4 +1705,148 @@
 .light-theme input::placeholder,
 .light-theme textarea::placeholder {
   color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Light Theme overrides for post interaction buttons, mobile header buttons, mobile navigation, close buttons and form labels */
+.light-theme .interaction-btn {
+  color: #475569 !important;
+}
+
+.light-theme .interaction-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+.light-theme .interaction-btn.like-btn.active {
+  color: #ff3b30 !important;
+}
+
+.light-theme .interaction-btn.bookmark-btn.active {
+  color: var(--lime-neon) !important;
+}
+
+.light-theme .icon-badge-btn {
+  color: #0f172a !important;
+}
+
+.light-theme .icon-badge {
+  border-color: #ffffff !important;
+}
+
+.light-theme .mobile-bottom-nav {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.light-theme .mobile-nav-btn {
+  color: #475569 !important;
+}
+
+.light-theme .mobile-nav-btn.active {
+  color: var(--lime-neon) !important;
+}
+
+.light-theme .mobile-nav-btn-fab {
+  border-color: #f8fafc !important;
+  color: #ffffff !important;
+}
+
+.light-theme .modal-close-btn,
+.light-theme .lightbox-close-btn {
+  color: #475569 !important;
+}
+
+.light-theme .modal-close-btn:hover,
+.light-theme .lightbox-close-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+.light-theme .form-label-title {
+  color: #64748b !important;
+}
+
+/* POST OPTIONS DROPDOWN MENU */
+.post-options-container {
+  position: relative;
+  display: inline-block;
+}
+
+.post-options-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-glow);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  min-width: 140px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.post-options-menu button {
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.post-options-menu button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.post-options-menu button.delete-option {
+  color: #ff3b30;
+}
+
+.post-options-menu button.delete-option:hover {
+  background: rgba(255, 59, 48, 0.1);
+}
+
+/* Light Theme overrides for options menu */
+.light-theme .post-options-menu {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-theme .post-options-menu button {
+  color: #0f172a !important;
+}
+
+.light-theme .post-options-menu button:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+.light-theme .post-options-menu button.delete-option {
+  color: #ef4444 !important;
+}
+
+.light-theme .post-options-menu button.delete-option:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.light-theme .card-header-right-btn {
+  color: #475569 !important;
+}
+
+.light-theme .card-header-right-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+.light-theme .btn-submit-post {
+  color: #ffffff !important;
 }

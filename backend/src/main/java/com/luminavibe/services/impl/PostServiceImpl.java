@@ -100,6 +100,29 @@ public class PostServiceImpl implements PostService {
         return posts.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
+    @Override
+    public PostDto updatePost(Integer userId, Integer postId, String content, String location) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+        if (!post.getUser().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to update this post");
+        }
+        post.setContent(content);
+        post.setLocation(location);
+        Post updated = postRepository.save(post);
+        return convertToDto(updated);
+    }
+
+    @Override
+    public void deletePost(Integer userId, Integer postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+        if (!post.getUser().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to delete this post");
+        }
+        postRepository.delete(post);
+    }
+
     private PostDto convertToDto(Post post) {
         if (post == null) return null;
         PostDto dto = modelMapper.map(post, PostDto.class);

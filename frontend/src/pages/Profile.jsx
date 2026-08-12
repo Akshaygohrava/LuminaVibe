@@ -1243,7 +1243,7 @@ export default function ProfilePage() {
                 <div className="flex gap-4">
                   <button className="interaction-btn active">
                     <Heart className="size-5 fill-red-500 text-red-500" style={{ color: "#ef4444" }} />
-                    <span style={{ color: "#0f172a" }}>{selectedPost.likes}</span>
+                    <span>{selectedPost.likes}</span>
                   </button>
                   <button className="interaction-btn">
                     <MessageCircle className="size-5" />

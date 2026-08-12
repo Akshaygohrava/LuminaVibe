@@ -142,7 +142,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className={`feed-page-container settings-page-container ${darkMode ? "dark" : "light"}`}>
+    <div className={`feed-page-container settings-page-container ${darkMode ? "dark" : "light light-theme"}`}>
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
         <span className="mobile-logo" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
