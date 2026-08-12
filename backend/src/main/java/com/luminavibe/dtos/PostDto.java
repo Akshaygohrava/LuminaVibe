@@ -41,4 +41,7 @@ public class PostDto {
 
     @JsonProperty("comments")
     private List<CommentDto> comments;
+
+    @JsonProperty("is_bookmarked")
+    private Boolean isBookmarked = false;
 }

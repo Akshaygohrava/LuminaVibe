@@ -229,78 +229,103 @@ export default function FeedPage() {
   const [posts, setPosts] = useState([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
 
-  // Stories mock data
-  const stories = [
-    {
-      id: 1,
-      username: "Your story",
-      avatar: currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-      isSelf: true,
-      storyUrl: "",
-      isLive: false
-    },
-    {
-      id: 2,
-      username: "calire.gd",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop",
-      isSelf: false,
-      isLive: true,
-      storyUrl: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop",
-    },
-    {
-      id: 3,
-      username: "calista33",
-      avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop",
-      isSelf: false,
-      isLive: false,
-      storyUrl: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=600&auto=format&fit=crop",
-    },
-    {
-      id: 4,
-      username: "azizahrh",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop",
-      isSelf: false,
-      isLive: false,
-      storyUrl: "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&auto=format&fit=crop",
-    },
-    {
-      id: 5,
-      username: "adamsuseno",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop",
-      isSelf: false,
-      isLive: false,
-      storyUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop",
-    },
-    {
-      id: 6,
-      username: "adelia.k",
-      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop",
-      isSelf: false,
-      isLive: false,
-      storyUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop",
-    }
-  ];
+  // Live stories list state
+  const [stories, setStories] = useState([]);
+  const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
+  const [storyFiles, setStoryFiles] = useState([]);
+  const [storyPreviews, setStoryPreviews] = useState([]);
+  const [storyMediaIdx, setStoryMediaIdx] = useState(0);
+  const [isUploadingStory, setIsUploadingStory] = useState(false);
 
-  // Story Autoclose Timer effect
+  const loadStories = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/stories", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const normalized = data.map(item => ({
+          id: item.story_id,
+          userId: item.user_id,
+          username: item.username,
+          avatar: item.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+          isSelf: item.user_id === (currentUser?.userId || currentUser?.user_id),
+          mediaList: (item.media_list || []).map(m => ({
+            mediaId: m.media_id || m.mediaId,
+            mediaUrl: m.media_url || m.mediaUrl,
+            mediaType: m.media_type || m.mediaType || "image/jpeg"
+          }))
+        }));
+
+        const hasOwnStory = normalized.some(s => s.isSelf);
+        if (!hasOwnStory) {
+          normalized.unshift({
+            id: 0,
+            userId: currentUser?.userId || currentUser?.user_id,
+            username: "Your story",
+            avatar: currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+            isSelf: true,
+            mediaList: []
+          });
+        } else {
+          const ownIdx = normalized.findIndex(s => s.isSelf);
+          if (ownIdx !== -1) {
+            normalized[ownIdx].username = "Your story";
+          }
+        }
+        setStories(normalized);
+      }
+    } catch (e) {
+      console.error("Error loading stories:", e);
+    }
+  };
+
+  // Story Autoclose & Advance Timer effect
   useEffect(() => {
     let timer;
-    if (selectedStory) {
+    if (selectedStory && selectedStory.mediaList && selectedStory.mediaList.length > 0) {
       setStoryProgress(0);
       timer = setInterval(() => {
         setStoryProgress((prev) => {
           if (prev >= 100) {
-            clearInterval(timer);
-            setSelectedStory(null);
+            if (storyMediaIdx < selectedStory.mediaList.length - 1) {
+              setStoryMediaIdx(prevIdx => prevIdx + 1);
+            } else {
+              setSelectedStory(null);
+            }
             return 0;
           }
-          return prev + 1;
+          return prev + 2;
         });
-      }, 50); // 50ms * 100 = 5 seconds
+      }, 50);
     }
     return () => {
       clearInterval(timer);
     };
-  }, [selectedStory]);
+  }, [selectedStory, storyMediaIdx]);
+
+  const handleOpenStoryPlayer = (story) => {
+    setStoryMediaIdx(0);
+    setSelectedStory(story);
+  };
+
+  const handleNextStoryMedia = () => {
+    if (selectedStory && storyMediaIdx < selectedStory.mediaList.length - 1) {
+      setStoryMediaIdx(prev => prev + 1);
+      setStoryProgress(0);
+    } else {
+      setSelectedStory(null);
+    }
+  };
+
+  const handlePrevStoryMedia = () => {
+    if (storyMediaIdx > 0) {
+      setStoryMediaIdx(prev => prev - 1);
+      setStoryProgress(0);
+    }
+  };
 
   // Helper to format post timestamps
   const formatPostTime = (timeStr) => {
@@ -359,7 +384,7 @@ export default function FeedPage() {
         })),
         likesCount: p.likes_count || 0,
         isLiked: p.is_liked || false,
-        isBookmarked: false,
+        isBookmarked: p.is_bookmarked || false,
         caption: p.content || "",
         comments: (p.comments || []).map(c => normalizeComment(c)),
         showComments: false
@@ -374,6 +399,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     loadAllPosts();
+    loadStories();
   }, []);
 
   // Handle preview images / videos before post creation
@@ -397,6 +423,60 @@ export default function FeedPage() {
       URL.revokeObjectURL(prev[index].url);
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  const handleStoryFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    setStoryFiles(prev => [...prev, ...files]);
+
+    const newPreviews = files.map(file => ({
+      url: URL.createObjectURL(file),
+      type: file.type
+    }));
+    setStoryPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeStoryFile = (index) => {
+    setStoryFiles(prev => prev.filter((_, i) => i !== index));
+    setStoryPreviews(prev => {
+      URL.revokeObjectURL(prev[index].url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleCreateStory = async (e) => {
+    e.preventDefault();
+    if (storyFiles.length === 0) return;
+    setIsUploadingStory(true);
+
+    const formData = new FormData();
+    for (let i = 0; i < storyFiles.length; i++) {
+      formData.append("files", storyFiles[i]);
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/stories", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: formData
+      });
+      if (res.ok) {
+        setShowCreateStoryModal(false);
+        setStoryFiles([]);
+        setStoryPreviews([]);
+        loadStories();
+      } else {
+        alert("Failed to upload story");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload story");
+    } finally {
+      setIsUploadingStory(false);
+    }
   };
 
   // Action handlers
@@ -437,15 +517,28 @@ export default function FeedPage() {
     }
   };
 
-  const handleBookmarkPost = (postId) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          return { ...post, isBookmarked: !post.isBookmarked };
+  const handleBookmarkPost = async (postId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/bookmarks/toggle/${postId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
-        return post;
-      })
-    );
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPosts((prevPosts) =>
+          prevPosts.map((post) => {
+            if (post.id === postId) {
+              return { ...post, isBookmarked: data.bookmarked };
+            }
+            return post;
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+    }
   };
 
   const toggleCommentsAccordion = (postId) => {
@@ -780,40 +873,46 @@ export default function FeedPage() {
             <>
               {/* Stories Horizontal Bar */}
               <section className="stories-section">
-            <div className="stories-carousel">
-              {stories.map((story) => (
-                <div
-                  key={story.id}
-                  className="story-item"
-                  onClick={() => !story.isSelf && story.storyUrl && setSelectedStory(story)}
-                >
-                  <div className="story-ring-container">
+                <div className="stories-carousel">
+                  {stories.map((story) => (
                     <div
-                      className={`story-ring-gradient ${
-                        story.isLive
-                          ? "story-ring-live"
-                          : !story.storyUrl
-                          ? "story-ring-none"
-                          : ""
-                      }`}
-                    />
-                    <img
-                      src={story.avatar}
-                      alt={story.username}
-                      className="story-avatar-img"
-                    />
-                    {story.isSelf && (
-                      <div className="story-self-add" onClick={() => setShowCreateModal(true)}>
-                        +
+                      key={story.userId}
+                      className="story-item"
+                      onClick={() => {
+                        if (story.mediaList && story.mediaList.length > 0) {
+                          handleOpenStoryPlayer(story);
+                        } else if (story.isSelf) {
+                          setShowCreateStoryModal(true);
+                        }
+                      }}
+                    >
+                      <div className="story-ring-container">
+                        <div
+                          className={`story-ring-gradient ${
+                            story.mediaList && story.mediaList.length > 0
+                              ? "story-ring-live"
+                              : "story-ring-none"
+                          }`}
+                        />
+                        <img
+                          src={story.avatar}
+                          alt={story.username}
+                          className="story-avatar-img"
+                        />
+                        {story.isSelf && (
+                          <div className="story-self-add" onClick={(e) => {
+                            e.stopPropagation();
+                            setShowCreateStoryModal(true);
+                          }}>
+                            +
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {story.isLive && <span className="story-live-badge">LIVE</span>}
-                  </div>
-                  <span className="story-user-name">{story.username}</span>
+                      <span className="story-user-name">{story.username}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
 
           {/* Posts Feed Vertical List */}
           <section className="feed-posts-list">
@@ -1421,49 +1520,154 @@ export default function FeedPage() {
       )}
 
       {/* MODAL: STORIES VIEWER */}
-      {selectedStory && (
+      {selectedStory && selectedStory.mediaList && selectedStory.mediaList.length > 0 && (
         <div className="modal-overlay-bg" onClick={() => setSelectedStory(null)}>
-          <div className="story-viewer-content" onClick={(e) => e.stopPropagation()}>
+          <div className="story-viewer-content" onClick={(e) => e.stopPropagation()} style={{ position: "relative", maxWidth: "480px", width: "100%", background: "#000", borderRadius: "16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
             {/* Story progress ticks */}
-            <div className="story-progress-bar-list">
-              <div className="story-progress-bar-bg">
-                <div
-                  className="story-progress-bar-fill active"
-                  style={{ animationDuration: "5s" }}
-                />
-              </div>
+            <div className="story-progress-bar-list" style={{ display: "flex", gap: "4px", padding: "12px 16px", background: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)", position: "absolute", top: 0, left: 0, width: "100%", zIndex: 10 }}>
+              {selectedStory.mediaList.map((_, idx) => (
+                <div key={idx} className="story-progress-bar-bg" style={{ flex: 1, height: "2.5px", background: "rgba(255,255,255,0.25)", borderRadius: "4px", overflow: "hidden" }}>
+                  <div
+                    className="story-progress-bar-fill"
+                    style={{
+                      height: "100%",
+                      background: "#ffffff",
+                      width: idx === storyMediaIdx ? `${storyProgress}%` : idx < storyMediaIdx ? "100%" : "0%",
+                      transition: idx === storyMediaIdx ? "none" : "width 0.1s linear"
+                    }}
+                  />
+                </div>
+              ))}
             </div>
 
             {/* Viewer Header */}
-            <div className="story-viewer-header">
-              <div className="story-viewer-user">
+            <div className="story-viewer-header" style={{ display: "flex", alignItems: "center", justify: "space-between", padding: "16px 16px 8px", background: "linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)", position: "absolute", top: "10px", left: 0, width: "100%", zIndex: 10, color: "#fff" }}>
+              <div className="story-viewer-user" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <img
                   src={selectedStory.avatar}
                   alt=""
                   className="story-viewer-avatar"
+                  style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1.5px solid var(--lime-neon)", objectFit: "cover" }}
                 />
                 <div>
-                  <div className="story-viewer-name">{selectedStory.username}</div>
-                  <div className="story-viewer-time">Active Now</div>
+                  <div className="story-viewer-name" style={{ fontWeight: 600, fontSize: "0.85rem" }}>{selectedStory.username}</div>
+                  <div className="story-viewer-time" style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.5)" }}>Active Story</div>
                 </div>
               </div>
-              <button className="story-viewer-close" onClick={() => setSelectedStory(null)}>
+              <button className="story-viewer-close" onClick={() => setSelectedStory(null)} style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer" }}>
                 <X className="size-5" />
               </button>
             </div>
 
-            {selectedStory.isLive && (
-              <span className="story-viewer-live-badge">LIVE VIEWER</span>
-            )}
-
             {/* Viewer Media */}
-            <div className="story-viewer-media-panel">
-              <img
-                src={selectedStory.storyUrl}
-                alt={`${selectedStory.username}'s story`}
-                className="story-viewer-img"
-              />
+            <div className="story-viewer-media-panel" style={{ flexGrow: 1, display: "flex", alignItems: "center", justify: "center", height: "70vh", minHeight: "450px" }}>
+              {selectedStory.mediaList && selectedStory.mediaList[storyMediaIdx] ? (
+                selectedStory.mediaList[storyMediaIdx].mediaType?.startsWith("video/") ? (
+                  <video
+                    src={selectedStory.mediaList[storyMediaIdx].mediaUrl}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
+                  />
+                ) : (
+                  <img
+                    src={selectedStory.mediaList[storyMediaIdx].mediaUrl}
+                    alt="Story content"
+                    className="story-viewer-img"
+                    style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
+                  />
+                )
+              ) : (
+                <div style={{ color: "#fff" }}>No media content</div>
+              )}
             </div>
+
+            {/* Tap controls on the left/right sides */}
+            <div 
+              style={{ position: "absolute", top: "80px", left: 0, width: "30%", height: "calc(100% - 80px)", cursor: "pointer", zIndex: 5 }} 
+              onClick={handlePrevStoryMedia} 
+            />
+            <div 
+              style={{ position: "absolute", top: "80px", right: 0, width: "70%", height: "calc(100% - 80px)", cursor: "pointer", zIndex: 5 }} 
+              onClick={handleNextStoryMedia} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CREATE STORY */}
+      {showCreateStoryModal && (
+        <div className="modal-overlay-bg" onClick={() => setShowCreateStoryModal(false)}>
+          <div className="modal-content-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Create Story</span>
+              <button className="modal-close-btn" onClick={() => setShowCreateStoryModal(false)}>
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStory}>
+              <div className="form-field-wrapper">
+                <label className="form-label-title">Photos or Videos (Select multiple files)</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleStoryFileChange}
+                  className="form-text-input"
+                  style={{ display: "none" }}
+                  id="story-file-upload-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("story-file-upload-input").click()}
+                  className="form-text-input text-left flex items-center justify-between"
+                  style={{ 
+                    background: darkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", 
+                    color: darkMode ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)",
+                    borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+                  }}
+                >
+                  <span>Select media files for story...</span>
+                  <span className="text-[10px] bg-indigo-600 text-white py-1 px-2.5 rounded-md font-semibold">Browse</span>
+                </button>
+
+                {/* Previews scroll list */}
+                {storyPreviews.length > 0 && (
+                  <div className="create-post-previews-bar mt-3">
+                    {storyPreviews.map((prev, idx) => (
+                      <div key={idx} className="create-post-preview-card">
+                        {prev.type.startsWith("video/") ? (
+                          <video src={prev.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={prev.url} alt="" className="w-full h-full object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          className="create-post-preview-remove"
+                          onClick={() => removeStoryFile(idx)}
+                          aria-label="Remove media"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="form-submit-btn-bar">
+                <button
+                  type="submit"
+                  className="btn-submit-post"
+                  disabled={isUploadingStory || storyFiles.length === 0}
+                >
+                  <Sparkles className="size-4" />
+                  {isUploadingStory ? "Uploading Story..." : "Add to Story"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

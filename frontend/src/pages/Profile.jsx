@@ -145,11 +145,74 @@ export default function ProfilePage() {
     setLightboxSlideIdx(0);
   }, [selectedPost]);
 
-  // Mock Bookmarked Posts
-  const bookmarkedPosts = [
-    { id: 101, title: "Cozy Studio Setup", imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop", likes: 1420, comments: 320, caption: "Inspirational workspace colors from calire.gd. Neon layouts are a vibe." },
-    { id: 102, title: "Surabaya Rainy Lights", imageUrl: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop", likes: 9812, comments: 412, caption: "Cinematic neon reflection values." },
-  ];
+  // Dynamic Bookmarked Posts & Insights
+  const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
+  const [isLoadingBookmarks, setIsLoadingBookmarks] = useState(false);
+  const [insights, setInsights] = useState(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+
+  const loadBookmarkedPosts = async () => {
+    setIsLoadingBookmarks(true);
+    try {
+      const res = await fetch("http://localhost:8080/bookmarks", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const normalized = data.map((p) => {
+          const mappedMedia = (p.media_list || []).map((m) => ({
+            mediaId: m.media_id || m.mediaId,
+            mediaUrl: m.media_url || m.mediaUrl,
+            mediaType: m.media_type || m.mediaType || "image/jpeg"
+          }));
+          return {
+            id: p.post_id,
+            title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
+            imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
+            mediaList: mappedMedia,
+            likes: p.likes_count || 0,
+            comments: p.comments ? p.comments.length : 0,
+            caption: p.content || "",
+            location: p.location || "",
+          };
+        });
+        setBookmarkedPosts(normalized);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingBookmarks(false);
+    }
+  };
+
+  const loadInsights = async () => {
+    setIsLoadingInsights(true);
+    try {
+      const res = await fetch("http://localhost:8080/users/insights", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInsights(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "Bookmarked") {
+      loadBookmarkedPosts();
+    } else if (activeTab === "Insights") {
+      loadInsights();
+    }
+  }, [activeTab]);
 
   // Refresh profile details on load
   useEffect(() => {
@@ -863,65 +926,77 @@ export default function ProfilePage() {
 
           {/* TAB 3: Insights Performance meters */}
           {activeTab === "Insights" && (
-            <section className="insights-stats-grid">
-              <div className="insight-metric-card">
-                <span className="profile-stat-lbl">Profile Views</span>
-                <div className="insight-metric-num">12,408</div>
-                <div className="progress-track-bar">
-                  <div className="progress-fill-bar" style={{ width: "72%" }}></div>
+            isLoadingInsights ? (
+              <div className="text-center py-8" style={{ color: "var(--profile-text-dark)" }}>Loading Insights...</div>
+            ) : (
+              <section className="insights-stats-grid">
+                <div className="insight-metric-card">
+                  <span className="profile-stat-lbl">Profile Views</span>
+                  <div className="insight-metric-num">{insights?.profile_views ?? 0}</div>
+                  <div className="progress-track-bar">
+                    <div className="progress-fill-bar" style={{ width: "72%" }}></div>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">+14.2% since last week</span>
                 </div>
-                <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">+14.2% since last week</span>
-              </div>
-              <div className="insight-metric-card">
-                <span className="profile-stat-lbl">Engagement Rate</span>
-                <div className="insight-metric-num">8.42%</div>
-                <div className="progress-track-bar">
-                  <div className="progress-fill-bar" style={{ width: "54%" }}></div>
+                <div className="insight-metric-card">
+                  <span className="profile-stat-lbl">Engagement Rate</span>
+                  <div className="insight-metric-num">{insights?.engagement_rate ?? "0.00%"}</div>
+                  <div className="progress-track-bar">
+                    <div className="progress-fill-bar" style={{ width: "54%" }}></div>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">+3.1% since last week</span>
                 </div>
-                <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">+3.1% since last week</span>
-              </div>
-              <div className="insight-metric-card">
-                <span className="profile-stat-lbl">Content Reach</span>
-                <div className="insight-metric-num">325.4K</div>
-                <div className="progress-track-bar">
-                  <div className="progress-fill-bar" style={{ width: "85%" }}></div>
+                <div className="insight-metric-card">
+                  <span className="profile-stat-lbl">Total Posts Shared</span>
+                  <div className="insight-metric-num">{insights?.posts_count ?? 0}</div>
+                  <div className="progress-track-bar">
+                    <div className="progress-fill-bar" style={{ width: "85%" }}></div>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">All-time posts count</span>
                 </div>
-                <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">+24.8% since last week</span>
-              </div>
-              <div className="insight-metric-card">
-                <span className="profile-stat-lbl">Interactions</span>
-                <div className="insight-metric-num">42,912</div>
-                <div className="progress-track-bar">
-                  <div className="progress-fill-bar" style={{ width: "61%" }}></div>
+                <div className="insight-metric-card">
+                  <span className="profile-stat-lbl">Likes Received</span>
+                  <div className="insight-metric-num">{insights?.likes_count ?? 0}</div>
+                  <div className="progress-track-bar">
+                    <div className="progress-fill-bar" style={{ width: "61%" }}></div>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">All-time likes count</span>
                 </div>
-                <span className="text-[10px] text-emerald-600 font-semibold mt-2 block">+9.4% since last week</span>
-              </div>
-            </section>
+              </section>
+            )
           )}
 
           {/* TAB 4: Bookmarked Posts Grid */}
           {activeTab === "Bookmarked" && (
-            <section className="profile-posts-grid">
-              {bookmarkedPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="profile-grid-card"
-                  onClick={() => setSelectedPost(post)}
-                >
-                  <img src={post.imageUrl} alt={post.title} loading="lazy" />
-                  <div className="profile-grid-hover">
-                    <div className="flex items-center gap-1.5">
-                      <Heart className="size-4 fill-white" />
-                      <span>{post.likes}</span>
+            isLoadingBookmarks ? (
+              <div className="text-center py-8" style={{ color: "var(--profile-text-dark)" }}>Loading Bookmarks...</div>
+            ) : (
+              <section className="profile-posts-grid">
+                {bookmarkedPosts.length === 0 ? (
+                  <div className="col-span-full text-center py-8" style={{ color: "var(--profile-text-dark)", gridColumn: "1 / -1" }}>No bookmarks yet.</div>
+                ) : (
+                  bookmarkedPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="profile-grid-card"
+                      onClick={() => setSelectedPost(post)}
+                    >
+                      <img src={post.imageUrl} alt={post.title} loading="lazy" />
+                      <div className="profile-grid-hover">
+                        <div className="flex items-center gap-1.5">
+                          <Heart className="size-4 fill-white" />
+                          <span>{post.likes}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircle className="size-4 fill-white" />
+                          <span>{post.comments}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="size-4 fill-white" />
-                      <span>{post.comments}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </section>
+                  ))
+                )}
+              </section>
+            )
           )}
         </>
       )}

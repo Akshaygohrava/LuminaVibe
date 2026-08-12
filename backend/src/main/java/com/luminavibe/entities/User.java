@@ -49,6 +49,9 @@ public class User implements UserDetails {
     @Column(name = "is_private", nullable = false)
     private Boolean isPrivate = false;
 
+    @Column(name = "profile_views", nullable = false)
+    private Integer profileViews = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

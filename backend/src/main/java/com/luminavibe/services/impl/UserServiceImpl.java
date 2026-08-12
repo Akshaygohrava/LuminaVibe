@@ -98,6 +98,20 @@ public class UserServiceImpl implements UserService {
     public UserDto getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        try {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof User) {
+                User currentUser = (User) auth.getPrincipal();
+                if (!currentUser.getActualUsername().equalsIgnoreCase(user.getActualUsername())) {
+                    user.setProfileViews(user.getProfileViews() + 1);
+                    userRepository.save(user);
+                }
+            }
+        } catch (Exception e) {
+            // Keep safe against unauthenticated contexts
+        }
+
         return convertToDto(user);
     }
 

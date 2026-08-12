@@ -46,6 +46,9 @@ public class PostServiceImpl implements PostService {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private com.luminavibe.repositories.BookmarkRepository bookmarkRepository;
+
     @Override
     public PostDto createPost(Integer userId, String content, String location, MultipartFile[] files) {
         User user = userRepository.findById(userId)
@@ -136,7 +139,8 @@ public class PostServiceImpl implements PostService {
         postRepository.delete(post);
     }
 
-    private PostDto convertToDto(Post post) {
+    @Override
+    public PostDto convertToDto(Post post) {
         if (post == null) return null;
         PostDto dto = modelMapper.map(post, PostDto.class);
         if (dto.getUser() != null && post.getUser() != null) {
@@ -153,8 +157,12 @@ public class PostServiceImpl implements PostService {
             User currentUser = (User) auth.getPrincipal();
             boolean isLiked = likeRepository.existsByUserUserIdAndTargetTypeAndTargetId(currentUser.getUserId(), TargetType.post, post.getPostId());
             dto.setIsLiked(isLiked);
+
+            boolean isBookmarked = bookmarkRepository.existsByUserUserIdAndPostPostId(currentUser.getUserId(), post.getPostId());
+            dto.setIsBookmarked(isBookmarked);
         } else {
             dto.setIsLiked(false);
+            dto.setIsBookmarked(false);
         }
 
         // Populate comments (only top level, which recursively contain replies)
