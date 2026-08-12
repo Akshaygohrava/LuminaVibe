@@ -58,6 +58,40 @@ export default function FeedPage() {
     setDarkMode(localStorage.getItem("theme") !== "light");
   }, []);
 
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    const loadUnreadCounts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (notifRes.ok) {
+          const d = await notifRes.json();
+          setUnreadNotifications(d.count);
+        }
+
+        const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (msgRes.ok) {
+          const d = await msgRes.json();
+          setUnreadMessages(d.count);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    loadUnreadCounts();
+    const interval = setInterval(loadUnreadCounts, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Search input state
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -566,13 +600,13 @@ export default function FeedPage() {
           </span>
         </div>
         <div className="mobile-header-actions">
-          <button className="icon-badge-btn" aria-label="Notifications">
+          <button className="icon-badge-btn" aria-label="Notifications" onClick={() => window.navigateTo("/notifications")}>
             <Bell className="size-5" />
-            <span className="icon-badge">3</span>
+            {unreadNotifications > 0 && <span className="icon-badge">{unreadNotifications}</span>}
           </button>
           <button className="icon-badge-btn" aria-label="Messages" onClick={() => window.navigateTo("/messages")}>
             <MessageSquare className="size-5" />
-            <span className="icon-badge">5</span>
+            {unreadMessages > 0 && <span className="icon-badge">{unreadMessages}</span>}
           </button>
         </div>
       </header>
@@ -587,32 +621,25 @@ export default function FeedPage() {
 
           <nav className="sidebar-nav-list">
             {[
-              { name: "Home", icon: <Home className="size-5" /> },
-              { name: "Explore", icon: <Compass className="size-5" /> },
-              { name: "Notifications", icon: <Bell className="size-5" /> },
-              { name: "Messages", icon: <MessageSquare className="size-5" /> },
-              { name: "Profile", icon: <User className="size-5" /> },
-              { name: "Settings", icon: <Settings className="size-5" /> },
+              { name: "Home", path: "/feed", icon: <Home className="size-5" /> },
+              { name: "Explore", path: "/explore", icon: <Compass className="size-5" /> },
+              { name: "Notifications", path: "/notifications", icon: <Bell className="size-5" />, badge: unreadNotifications },
+              { name: "Messages", path: "/messages", icon: <MessageSquare className="size-5" />, badge: unreadMessages },
+              { name: "Profile", path: "/profile", icon: <User className="size-5" /> },
+              { name: "Settings", path: "/settings", icon: <Settings className="size-5" /> },
             ].map((item) => (
               <div
                 key={item.name}
                 className={`sidebar-nav-item ${activeNav === item.name ? "active" : ""}`}
                 onClick={() => {
                   setActiveNav(item.name);
-                  if (item.name === "Home") {
-                    window.navigateTo("/feed");
-                  } else if (item.name === "Explore") {
-                    window.navigateTo("/explore");
-                  } else if (item.name === "Profile") {
-                    window.navigateTo("/profile");
-                  } else if (item.name === "Settings") {
-                    window.navigateTo("/settings");
-                  } else if (item.name === "Messages") {
-                    window.navigateTo("/messages");
-                  }
+                  window.navigateTo(item.path);
                 }}
               >
-                {item.icon}
+                <div className="relative flex items-center">
+                  {item.icon}
+                  {item.badge > 0 && <span className="sidebar-badge">{item.badge}</span>}
+                </div>
                 <span>{item.name}</span>
               </div>
             ))}
@@ -1053,10 +1080,16 @@ export default function FeedPage() {
         </button>
         <button
           className={`mobile-nav-btn ${activeNav === "Notifications" ? "active" : ""}`}
-          onClick={() => setActiveNav("Notifications")}
+          onClick={() => {
+            setActiveNav("Notifications");
+            window.navigateTo("/notifications");
+          }}
           aria-label="Notifications"
         >
-          <Bell className="size-5" />
+          <div className="relative">
+            <Bell className="size-5" />
+            {unreadNotifications > 0 && <span className="mobile-badge-bubble">{unreadNotifications}</span>}
+          </div>
         </button>
         <button
           className={`mobile-nav-btn ${activeNav === "Profile" ? "active" : ""}`}

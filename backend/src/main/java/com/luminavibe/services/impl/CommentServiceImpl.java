@@ -27,6 +27,9 @@ public class CommentServiceImpl implements CommentService {
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private com.luminavibe.services.NotificationService notificationService;
+
     @Override
     public CommentDto addComment(Integer userId, Integer postId, Integer parentCommentId, String content) {
         User user = userRepository.findById(userId)
@@ -46,6 +49,23 @@ public class CommentServiceImpl implements CommentService {
         }
 
         Comment saved = commentRepository.save(comment);
+
+        // Trigger notification
+        try {
+            if (!post.getUser().getUserId().equals(userId)) {
+                String desc = user.getActualUsername() + " commented: " + (content.length() > 30 ? content.substring(0, 27) + "..." : content);
+                notificationService.createNotification(
+                        post.getUser().getUserId(),
+                        userId,
+                        "COMMENT",
+                        post.getPostId(),
+                        desc
+                );
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return convertToDto(saved);
     }
 

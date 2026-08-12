@@ -22,6 +22,15 @@ public class LikeServiceImpl implements LikeService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.luminavibe.services.NotificationService notificationService;
+
+    @Autowired
+    private com.luminavibe.repositories.PostRepository postRepository;
+
+    @Autowired
+    private com.luminavibe.repositories.CommentRepository commentRepository;
+
     @Override
     public LikeResponseDto toggleLike(Integer userId, TargetType targetType, Integer targetId) {
         User user = userRepository.findById(userId)
@@ -39,6 +48,37 @@ public class LikeServiceImpl implements LikeService {
             like.setTargetId(targetId);
             likeRepository.save(like);
             liked = true;
+
+            // Trigger notification
+            try {
+                if (targetType == TargetType.post) {
+                    postRepository.findById(targetId).ifPresent(post -> {
+                        if (!post.getUser().getUserId().equals(userId)) {
+                            notificationService.createNotification(
+                                    post.getUser().getUserId(),
+                                    userId,
+                                    "LIKE",
+                                    post.getPostId(),
+                                    user.getActualUsername() + " liked your vibe."
+                            );
+                        }
+                    });
+                } else if (targetType == TargetType.comment) {
+                    commentRepository.findById(targetId).ifPresent(comment -> {
+                        if (!comment.getUser().getUserId().equals(userId)) {
+                            notificationService.createNotification(
+                                    comment.getUser().getUserId(),
+                                    userId,
+                                    "LIKE",
+                                    comment.getCommentId(),
+                                    user.getActualUsername() + " liked your comment."
+                            );
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         int count = likeRepository.countByTargetTypeAndTargetId(targetType, targetId);

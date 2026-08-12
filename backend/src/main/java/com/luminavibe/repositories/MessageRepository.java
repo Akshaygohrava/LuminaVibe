@@ -20,4 +20,5 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
     List<Message> findConversations(@Param("userId") Integer userId);
 
     List<Message> findBySenderUserIdAndReceiverUserIdAndIsReadFalse(Integer senderId, Integer receiverId);
+    long countByReceiverUserIdAndIsReadFalse(Integer receiverId);
 }

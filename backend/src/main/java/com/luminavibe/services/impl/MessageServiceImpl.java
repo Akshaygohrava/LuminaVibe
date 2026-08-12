@@ -80,6 +80,11 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.saveAll(unread);
     }
 
+    @Override
+    public long getUnreadMessagesCount(Integer userId) {
+        return messageRepository.countByReceiverUserIdAndIsReadFalse(userId);
+    }
+
     private MessageDto convertToDto(Message m) {
         if (m == null) return null;
         MessageDto dto = new MessageDto();

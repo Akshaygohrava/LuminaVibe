@@ -29,6 +29,9 @@ public class FollowServiceImpl implements FollowService {
     @Autowired
     private ModelMapper modelMapper;
 
+    @Autowired
+    private com.luminavibe.services.NotificationService notificationService;
+
     @Override
     public FollowDto toggleFollow(Integer followerId, Integer targetUserId) {
         if (followerId.equals(targetUserId)) {
@@ -59,6 +62,30 @@ public class FollowServiceImpl implements FollowService {
             }
 
             Follow saved = followRepository.save(follow);
+
+            // Trigger notification
+            try {
+                if ("PENDING".equals(saved.getStatus())) {
+                    notificationService.createNotification(
+                            targetUserId,
+                            followerId,
+                            "FOLLOW_REQUEST",
+                            followerId,
+                            follower.getActualUsername() + " sent you a follow request."
+                    );
+                } else {
+                    notificationService.createNotification(
+                            targetUserId,
+                            followerId,
+                            "FOLLOW",
+                            followerId,
+                            follower.getActualUsername() + " started following you."
+                    );
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             return new FollowDto(followerId, targetUserId, saved.getStatus());
         }
     }
@@ -74,6 +101,23 @@ public class FollowServiceImpl implements FollowService {
 
         follow.setStatus("ACCEPTED");
         Follow saved = followRepository.save(follow);
+
+        // Trigger notification to follower that they were accepted
+        try {
+            User owner = userRepository.findById(ownerId).orElse(null);
+            if (owner != null) {
+                notificationService.createNotification(
+                        followerId,
+                        ownerId,
+                        "FOLLOW",
+                        ownerId,
+                        owner.getActualUsername() + " accepted your follow request."
+                );
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return new FollowDto(followerId, ownerId, saved.getStatus());
     }
 

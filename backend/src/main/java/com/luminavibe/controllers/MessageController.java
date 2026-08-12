@@ -85,6 +85,14 @@ public class MessageController {
         return ResponseEntity.ok(userDtos);
     }
 
+    @GetMapping("/unread-count")
+    public ResponseEntity<java.util.Map<String, Long>> getUnreadCount() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        long count = messageService.getUnreadMessagesCount(currentUser.getUserId());
+        return ResponseEntity.ok(java.util.Map.of("count", count));
+    }
+
     @Data
     public static class SendMessageRequest {
         private Integer receiverId;

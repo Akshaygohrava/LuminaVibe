@@ -7,6 +7,7 @@ import ExplorePage from './pages/Explore'
 import ProfilePage from './pages/Profile'
 import SettingsPage from './pages/Settings'
 import MessagesPage from './pages/Messages'
+import NotificationsPage from './pages/Notifications'
 import './App.css'
 
 function App() {
@@ -78,6 +79,14 @@ function App() {
       return null
     }
     return <MessagesPage />
+  }
+
+  if (path === '/notifications') {
+    if (!isAuthenticated()) {
+      setTimeout(() => navigate('/'), 0)
+      return null
+    }
+    return <NotificationsPage />
   }
 
   if (path === '/signin') {

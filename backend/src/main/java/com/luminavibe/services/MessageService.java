@@ -9,4 +9,5 @@ public interface MessageService {
     List<MessageDto> getChatHistory(Integer userId1, Integer userId2);
     List<ConversationDto> getConversationsList(Integer userId);
     void markAsRead(Integer senderId, Integer receiverId);
+    long getUnreadMessagesCount(Integer userId);
 }
