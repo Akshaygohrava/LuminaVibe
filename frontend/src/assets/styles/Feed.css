@@ -1850,3 +1850,50 @@
 .light-theme .btn-submit-post {
   color: #ffffff !important;
 }
+
+/* Comment metadata actions & reply button */
+.comment-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.comment-reply-btn {
+  background: transparent;
+  border: none;
+  color: var(--lime-neon) !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.comment-reply-btn:hover {
+  text-decoration: underline;
+}
+
+/* Light theme color override for reply button */
+.light-theme .comment-reply-btn {
+  color: #6366f1 !important;
+}
+
+/* Indented replies list style */
+.comment-replies-list {
+  margin-left: 36px;
+  padding-left: 12px;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.08);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.light-theme .comment-replies-list {
+  border-left-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Indented reply input wrapper style */
+.reply-input-form-wrapper {
+  margin-left: 36px;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}

@@ -20,6 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.luminavibe.entities.TargetType;
+import com.luminavibe.entities.Comment;
+import com.luminavibe.dtos.CommentDto;
+import com.luminavibe.repositories.LikeRepository;
+import com.luminavibe.repositories.CommentRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -32,6 +39,12 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private LikeRepository likeRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
 
     @Override
     public PostDto createPost(Integer userId, String content, String location, MultipartFile[] files) {
@@ -129,6 +142,50 @@ public class PostServiceImpl implements PostService {
         if (dto.getUser() != null && post.getUser() != null) {
             dto.getUser().setUsername(post.getUser().getActualUsername());
         }
+
+        // Populate likes count
+        int likesCount = likeRepository.countByTargetTypeAndTargetId(TargetType.post, post.getPostId());
+        dto.setLikesCount(likesCount);
+
+        // Populate isLiked
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            boolean isLiked = likeRepository.existsByUserUserIdAndTargetTypeAndTargetId(currentUser.getUserId(), TargetType.post, post.getPostId());
+            dto.setIsLiked(isLiked);
+        } else {
+            dto.setIsLiked(false);
+        }
+
+        // Populate comments (only top level, which recursively contain replies)
+        List<Comment> topLevelComments = commentRepository.findByPostPostIdAndParentCommentIsNullOrderByCreatedAtAsc(post.getPostId());
+        List<CommentDto> commentDtos = topLevelComments.stream()
+                .map(this::convertCommentToDto)
+                .collect(Collectors.toList());
+        dto.setComments(commentDtos);
+
+        return dto;
+    }
+
+    private CommentDto convertCommentToDto(Comment comment) {
+        if (comment == null) return null;
+        CommentDto dto = new CommentDto();
+        dto.setCommentId(comment.getCommentId());
+        dto.setPostId(comment.getPost().getPostId());
+        dto.setUserId(comment.getUser().getUserId());
+        dto.setUsername(comment.getUser().getActualUsername());
+        dto.setUserAvatar(comment.getUser().getProfilePictureUrl());
+        dto.setParentCommentId(comment.getParentComment() != null ? comment.getParentComment().getCommentId() : null);
+        dto.setContent(comment.getContent());
+        dto.setCreatedAt(comment.getCreatedAt());
+
+        // Recursive population of nested replies
+        List<Comment> replies = commentRepository.findByParentCommentCommentIdOrderByCreatedAtAsc(comment.getCommentId());
+        List<CommentDto> replyDtos = replies.stream()
+                .map(this::convertCommentToDto)
+                .collect(Collectors.toList());
+        dto.setReplies(replyDtos);
+
         return dto;
     }
 }

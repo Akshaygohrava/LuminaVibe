@@ -75,6 +75,7 @@ export default function FeedPage() {
   const [editCaption, setEditCaption] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [activeReplyCommentId, setActiveReplyCommentId] = useState(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -208,6 +209,18 @@ export default function FeedPage() {
       if (!res.ok) throw new Error("Failed to load posts");
       const data = await res.json();
       
+      const normalizeComment = (c) => {
+        if (!c) return null;
+        return {
+          id: c.commentId,
+          username: c.username,
+          avatar: c.userAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+          text: c.content,
+          time: formatPostTime(c.createdAt),
+          replies: (c.replies || []).map(r => normalizeComment(r))
+        };
+      };
+
       const normalized = data.map(p => ({
         id: p.post_id,
         user: {
@@ -222,11 +235,11 @@ export default function FeedPage() {
           mediaUrl: m.media_url || m.mediaUrl,
           mediaType: m.media_type || m.mediaType || "image/jpeg"
         })),
-        likesCount: Math.floor(Math.random() * 500) + 12,
-        isLiked: false,
+        likesCount: p.likes_count || 0,
+        isLiked: p.is_liked || false,
         isBookmarked: false,
         caption: p.content || "",
-        comments: [],
+        comments: (p.comments || []).map(c => normalizeComment(c)),
         showComments: false
       }));
       setPosts(normalized);
@@ -265,20 +278,41 @@ export default function FeedPage() {
   };
 
   // Action handlers
-  const handleLikePost = (postId) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          const isLikedNow = !post.isLiked;
-          return {
-            ...post,
-            isLiked: isLikedNow,
-            likesCount: isLikedNow ? post.likesCount + 1 : post.likesCount - 1,
-          };
-        }
-        return post;
-      })
-    );
+  const handleLikePost = async (postId) => {
+    try {
+      const response = await fetch("http://localhost:8080/likes/toggle", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetType: "post",
+          targetId: postId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle like");
+      }
+
+      const data = await response.json();
+      
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              isLiked: data.liked,
+              likesCount: data.count
+            };
+          }
+          return post;
+        })
+      );
+    } catch (err) {
+      console.error("Error toggling like:", err);
+    }
   };
 
   const handleBookmarkPost = (postId) => {
@@ -303,28 +337,32 @@ export default function FeedPage() {
     );
   };
 
-  const handleAddComment = (e, postId, commentText) => {
-    e.preventDefault();
+  const handleAddComment = async (e, postId, commentText, parentCommentId = null) => {
+    if (e) e.preventDefault();
     if (!commentText.trim()) return;
 
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          const newComment = {
-            id: Date.now(),
-            username: currentUser.username || "me",
-            avatar: currentUser.profile_picture_url || currentUser.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-            text: commentText,
-            time: "Just now",
-          };
-          return {
-            ...post,
-            comments: [...post.comments, newComment],
-          };
-        }
-        return post;
-      })
-    );
+    try {
+      const response = await fetch(`http://localhost:8080/posts/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: commentText.trim(),
+          parentCommentId: parentCommentId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to post comment");
+      }
+
+      await loadAllPosts();
+      setActiveReplyCommentId(null);
+    } catch (err) {
+      alert("Error adding comment: " + err.message);
+    }
   };
 
   const handleCreatePost = async (e) => {
@@ -467,6 +505,54 @@ export default function FeedPage() {
       ...prev,
       [postId]: !prev[postId],
     }));
+  };
+
+  const renderComment = (comment, postId) => {
+    if (!comment) return null;
+    return (
+      <div key={comment.id} className="comment-thread-container">
+        <div className="comment-row">
+          <img
+            src={comment.avatar}
+            alt=""
+            className="comment-avatar"
+          />
+          <div className="comment-bubble">
+            <div>
+              <span className="comment-user">{comment.username}</span>
+              <span className="comment-text">{comment.text}</span>
+            </div>
+            <div className="comment-meta-actions">
+              <span className="comment-time">{comment.time}</span>
+              <button 
+                type="button"
+                className="comment-reply-btn"
+                onClick={() => setActiveReplyCommentId(prev => prev === comment.id ? null : comment.id)}
+              >
+                Reply
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Nested replies */}
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="comment-replies-list">
+            {comment.replies.map(reply => renderComment(reply, postId))}
+          </div>
+        )}
+
+        {/* Reply input field */}
+        {activeReplyCommentId === comment.id && (
+          <div className="reply-input-form-wrapper">
+            <CommentForm
+              placeholder={`Reply to @${comment.username}...`}
+              onSubmitComment={(text) => handleAddComment(null, postId, text, comment.id)}
+            />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -855,28 +941,13 @@ export default function FeedPage() {
                             No comments yet. Start the conversation!
                           </div>
                         ) : (
-                          post.comments.map((comment) => (
-                            <div key={comment.id} className="comment-row">
-                              <img
-                                src={comment.avatar}
-                                alt=""
-                                className="comment-avatar"
-                              />
-                              <div className="comment-bubble">
-                                <div>
-                                  <span className="comment-user">{comment.username}</span>
-                                  <span className="comment-text">{comment.text}</span>
-                                </div>
-                                <span className="comment-time">{comment.time}</span>
-                              </div>
-                            </div>
-                          ))
+                          post.comments.map((comment) => renderComment(comment, post.id))
                         )}
                       </div>
 
                       {/* Add comment form */}
                       <CommentForm
-                        onSubmitComment={(text) => handleAddComment(event, post.id, text)}
+                        onSubmitComment={(text) => handleAddComment(null, post.id, text, null)}
                       />
                     </div>
                   )}
@@ -1196,7 +1267,7 @@ export default function FeedPage() {
 }
 
 // Sub-component for adding comments with its own text field state
-function CommentForm({ onSubmitComment }) {
+function CommentForm({ onSubmitComment, placeholder = "Write a comment..." }) {
   const [commentText, setCommentText] = useState("");
 
   const handleSubmit = (e) => {
@@ -1210,7 +1281,7 @@ function CommentForm({ onSubmitComment }) {
     <form onSubmit={handleSubmit} className="comment-input-form">
       <input
         type="text"
-        placeholder="Write a comment..."
+        placeholder={placeholder}
         className="comment-input-field"
         value={commentText}
         onChange={(e) => setCommentText(e.target.value)}

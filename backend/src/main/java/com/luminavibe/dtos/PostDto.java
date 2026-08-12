@@ -32,4 +32,13 @@ public class PostDto {
 
     @JsonProperty("media_list")
     private List<PostMediaDto> mediaList;
+
+    @JsonProperty("likes_count")
+    private Integer likesCount = 0;
+
+    @JsonProperty("is_liked")
+    private Boolean isLiked = false;
+
+    @JsonProperty("comments")
+    private List<CommentDto> comments;
 }
