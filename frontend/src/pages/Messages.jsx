@@ -42,12 +42,17 @@ export default function MessagesPage() {
   const [activeNav, setActiveNav] = useState("Messages");
   const [darkMode, setDarkMode] = useState(() => {
     try {
-      const stored = localStorage.getItem("settings_theme");
-      return stored ? stored === "dark" : true;
+      return localStorage.getItem("theme") !== "light";
     } catch (e) {
       return true;
     }
   });
+
+  useEffect(() => {
+    try {
+      setDarkMode(localStorage.getItem("theme") !== "light");
+    } catch (e) {}
+  }, []);
 
   // Message specific states
   const [conversations, setConversations] = useState([]);
@@ -61,6 +66,43 @@ export default function MessagesPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const messagesEndRef = useRef(null);
+  const hasCheckedUrlParams = useRef(false);
+
+  // Auto-select chat based on query parameters (e.g. from profile redirect)
+  useEffect(() => {
+    if (conversations.length > 0 && !hasCheckedUrlParams.current) {
+      hasCheckedUrlParams.current = true;
+      const params = new URLSearchParams(window.location.search);
+      const targetUserIdStr = params.get("userId");
+      if (targetUserIdStr) {
+        const targetUserId = parseInt(targetUserIdStr, 10);
+        const targetUsername = params.get("username") || "creator";
+        const targetFullName = params.get("fullName") || targetUsername;
+        const targetAvatar = params.get("avatar") || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop";
+
+        const existing = conversations.find(c => c.otherUserId === targetUserId);
+        if (existing) {
+          setActiveChat(existing);
+          setMobileView("chat");
+          loadChatHistory(targetUserId);
+        } else {
+          const virtualChat = {
+            otherUserId: targetUserId,
+            otherUsername: targetUsername,
+            otherFullName: targetFullName,
+            otherProfilePictureUrl: targetAvatar,
+            lastMessage: "",
+            lastMessageTime: null,
+            lastMessageIsRead: true,
+            lastMessageSentByMe: false
+          };
+          setActiveChat(virtualChat);
+          setMobileView("chat");
+          loadChatHistory(targetUserId);
+        }
+      }
+    }
+  }, [conversations]);
 
   // Load conversations on component mount & periodically
   useEffect(() => {

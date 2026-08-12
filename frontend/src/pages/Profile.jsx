@@ -696,7 +696,10 @@ export default function ProfilePage() {
                       >
                         {followStatus === "ACCEPTED" ? "Following" : followStatus === "PENDING" ? "Requested" : "Follow"}
                       </button>
-                      <button className="profile-btn-secondary" onClick={() => window.navigateTo("/feed")}>
+                      <button 
+                        className="profile-btn-secondary" 
+                        onClick={() => window.navigateTo(`/messages?userId=${profileUser.userId}&username=${profileUser.username}&fullName=${encodeURIComponent(profileUser.fullName || profileUser.full_name || "")}&avatar=${encodeURIComponent(profileUser.profilePicture || profileUser.profile_picture_url || "")}`)}
+                      >
                         Message
                       </button>
                     </>
