@@ -25,6 +25,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Override
     public UserDto register(UserDto userDto) {
         if (userRepository.existsByUsername(userDto.getUsername())) {
@@ -120,5 +123,50 @@ public class UserServiceImpl implements UserService {
         UserDto dto = modelMapper.map(user, UserDto.class);
         dto.setUsername(user.getActualUsername());
         return dto;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteUser(Integer userId) {
+        // 1. Delete bookmarks
+        jdbcTemplate.update("DELETE FROM bookmarks WHERE user_id = ?", userId);
+        jdbcTemplate.update("DELETE FROM bookmarks WHERE post_id IN (SELECT post_id FROM posts WHERE user_id = ?)", userId);
+
+        // 2. Delete likes
+        jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", userId);
+        jdbcTemplate.update("DELETE FROM likes WHERE target_type = 'post' AND target_id IN (SELECT post_id FROM posts WHERE user_id = ?)", userId);
+        jdbcTemplate.update("DELETE FROM likes WHERE target_type = 'comment' AND target_id IN (SELECT comment_id FROM comments WHERE user_id = ? OR post_id IN (SELECT post_id FROM posts WHERE user_id = ?))", userId, userId);
+
+        // 3. Clear comment parents to avoid constraint violations
+        jdbcTemplate.update("UPDATE comments SET parent_comment_id = NULL WHERE parent_comment_id IN (SELECT comment_id FROM (SELECT comment_id FROM comments WHERE user_id = ? OR post_id IN (SELECT post_id FROM posts WHERE user_id = ?)) tmp)", userId, userId);
+        // Delete comments
+        jdbcTemplate.update("DELETE FROM comments WHERE user_id = ? OR post_id IN (SELECT post_id FROM posts WHERE user_id = ?)", userId, userId);
+
+        // 4. Delete post media
+        jdbcTemplate.update("DELETE FROM post_media WHERE post_id IN (SELECT post_id FROM posts WHERE user_id = ?)", userId);
+
+        // 5. Delete posts
+        jdbcTemplate.update("DELETE FROM posts WHERE user_id = ?", userId);
+
+        // 6. Delete story media
+        jdbcTemplate.update("DELETE FROM story_media WHERE story_id IN (SELECT story_id FROM stories WHERE user_id = ?)", userId);
+
+        // 7. Delete stories
+        jdbcTemplate.update("DELETE FROM stories WHERE user_id = ?", userId);
+
+        // 8. Delete notifications
+        jdbcTemplate.update("DELETE FROM notifications WHERE recipient_id = ? OR creator_id = ?", userId, userId);
+
+        // 9. Delete messages
+        jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", userId, userId);
+
+        // 10. Delete follows
+        jdbcTemplate.update("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", userId, userId);
+
+        // 11. Delete user settings
+        jdbcTemplate.update("DELETE FROM user_settings WHERE user_id = ?", userId);
+
+        // 12. Delete user
+        jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", userId);
     }
 }

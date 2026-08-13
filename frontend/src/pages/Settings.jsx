@@ -16,6 +16,7 @@ import {
   User,
   Check,
   Languages,
+  Trash2,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import "../assets/styles/Settings.css";
@@ -146,6 +147,31 @@ export default function SettingsPage() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     window.navigateTo("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you absolutely sure you want to delete your account? This action is permanent and will delete all your posts, comments, likes, messages, and settings. This cannot be undone."
+    );
+    if (!confirmDelete) return;
+
+    const finalConfirm = window.prompt("Type 'DELETE' to confirm deletion of your account:");
+    if (finalConfirm !== "DELETE") {
+      alert("Account deletion canceled. Confirmation phrase did not match.");
+      return;
+    }
+
+    try {
+      await api.delete(`/users/${currentUser.userId}`);
+      // Clear token and user storage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      alert("Your account and all associated data have been permanently deleted.");
+      window.navigateTo("/");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || err.message || "Failed to delete account.");
+    }
   };
 
   return (
@@ -357,11 +383,15 @@ export default function SettingsPage() {
                 </button>
               </div>
 
-              {/* Log out box */}
+              {/* Action Buttons Box */}
               <section className="settings-logout-card">
                 <button className="btn-settings-logout" onClick={handleLogout}>
                   <LogOut className="size-5" />
                   <span>Log Out of Account</span>
+                </button>
+                <button className="btn-settings-delete" onClick={handleDeleteAccount}>
+                  <Trash2 className="size-5" />
+                  <span>Delete Account & Data</span>
                 </button>
               </section>
             </>

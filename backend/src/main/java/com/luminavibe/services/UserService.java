@@ -8,4 +8,5 @@ public interface UserService {
     List<UserDto> searchUsers(String query);
     UserDto updateUser(Integer userId, UserDto userDto);
     UserDto getUserByUsername(String username);
+    void deleteUser(Integer userId);
 }

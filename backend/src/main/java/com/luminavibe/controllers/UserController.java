@@ -112,4 +112,17 @@ public class UserController {
             "engagement_rate", String.format("%.2f", engagementRate) + "%"
         ));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable("id") Integer id) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        com.luminavibe.entities.User user = (com.luminavibe.entities.User) auth.getPrincipal();
+
+        if (!user.getUserId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only delete your own account.");
+        }
+
+        userService.deleteUser(id);
+        return ResponseEntity.ok(Map.of("message", "Account and all associated data deleted successfully."));
+    }
 }
