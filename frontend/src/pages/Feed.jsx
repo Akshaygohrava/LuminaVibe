@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import api from "../services/api";
 import {
   Home,
   Compass,
@@ -79,15 +80,8 @@ export default function FeedPage() {
   const loadFollowRequests = async () => {
     setIsLoadingRequests(true);
     try {
-      const res = await fetch("http://localhost:8080/follows/requests", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFollowRequests(data);
-      }
+      const res = await api.get("/follows/requests");
+      setFollowRequests(res.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -97,15 +91,8 @@ export default function FeedPage() {
 
   const handleAcceptRequest = async (followerId) => {
     try {
-      const res = await fetch(`http://localhost:8080/follows/accept/${followerId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        loadFollowRequests();
-      }
+      await api.post(`/follows/accept/${followerId}`);
+      loadFollowRequests();
     } catch (err) {
       console.error(err);
     }
@@ -113,15 +100,8 @@ export default function FeedPage() {
 
   const handleRejectRequest = async (followerId) => {
     try {
-      const res = await fetch(`http://localhost:8080/follows/reject/${followerId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        loadFollowRequests();
-      }
+      await api.post(`/follows/reject/${followerId}`);
+      loadFollowRequests();
     } catch (err) {
       console.error(err);
     }
@@ -129,21 +109,13 @@ export default function FeedPage() {
 
   const handleToggleFollowSuggestion = async (userId, idx) => {
     try {
-      const res = await fetch(`http://localhost:8080/follows/toggle/${userId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
+      const res = await api.post(`/follows/toggle/${userId}`);
+      setSuggestedCreators(prev => prev.map((item, i) => {
+        if (i === idx) {
+          return { ...item, followStatus: res.data.status };
         }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSuggestedCreators(prev => prev.map((item, i) => {
-          if (i === idx) {
-            return { ...item, followStatus: data.status };
-          }
-          return item;
-        }));
-      }
+        return item;
+      }));
     } catch (err) {
       console.error(err);
     }
@@ -155,21 +127,11 @@ export default function FeedPage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (notifRes.ok) {
-          const d = await notifRes.json();
-          setUnreadNotifications(d.count);
-        }
+        const notifRes = await api.get("/notifications/unread-count");
+        setUnreadNotifications(notifRes.data.count);
 
-        const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (msgRes.ok) {
-          const d = await msgRes.json();
-          setUnreadMessages(d.count);
-        }
+        const msgRes = await api.get("/messages/unread-count");
+        setUnreadMessages(msgRes.data.count);
       } catch (e) {
         console.error(e);
       }
@@ -239,13 +201,8 @@ export default function FeedPage() {
 
   const loadStories = async () => {
     try {
-      const res = await fetch("http://localhost:8080/stories", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const res = await api.get("/stories");
+      const data = res.data;
         const normalized = data.map(item => ({
           id: item.story_id,
           userId: item.user_id,
@@ -276,7 +233,6 @@ export default function FeedPage() {
           }
         }
         setStories(normalized);
-      }
     } catch (e) {
       console.error("Error loading stories:", e);
     }
@@ -348,13 +304,8 @@ export default function FeedPage() {
   // Fetch posts from backend database
   const loadAllPosts = async () => {
     try {
-      const res = await fetch("http://localhost:8080/posts", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (!res.ok) throw new Error("Failed to load posts");
-      const data = await res.json();
+      const res = await api.get("/posts");
+      const data = res.data;
       
       const normalizeComment = (c) => {
         if (!c) return null;
@@ -456,21 +407,11 @@ export default function FeedPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/stories", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: formData
-      });
-      if (res.ok) {
-        setShowCreateStoryModal(false);
-        setStoryFiles([]);
-        setStoryPreviews([]);
-        loadStories();
-      } else {
-        alert("Failed to upload story");
-      }
+      const res = await api.post("/stories", formData);
+      setShowCreateStoryModal(false);
+      setStoryFiles([]);
+      setStoryPreviews([]);
+      loadStories();
     } catch (err) {
       console.error(err);
       alert("Failed to upload story");
@@ -482,23 +423,12 @@ export default function FeedPage() {
   // Action handlers
   const handleLikePost = async (postId) => {
     try {
-      const response = await fetch("http://localhost:8080/likes/toggle", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetType: "post",
-          targetId: postId
-        })
+      const response = await api.post("/likes/toggle", {
+        targetType: "post",
+        targetId: postId
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to toggle like");
-      }
-
-      const data = await response.json();
+      const data = response.data;
       
       setPosts((prevPosts) =>
         prevPosts.map((post) => {
@@ -506,7 +436,7 @@ export default function FeedPage() {
             return {
               ...post,
               isLiked: data.liked,
-              likesCount: data.count
+              likeCount: data.likeCount
             };
           }
           return post;
@@ -519,23 +449,16 @@ export default function FeedPage() {
 
   const handleBookmarkPost = async (postId) => {
     try {
-      const res = await fetch(`http://localhost:8080/bookmarks/toggle/${postId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPosts((prevPosts) =>
-          prevPosts.map((post) => {
-            if (post.id === postId) {
-              return { ...post, isBookmarked: data.bookmarked };
-            }
-            return post;
-          })
-        );
-      }
+      const res = await api.post(`/bookmarks/toggle/${postId}`);
+      const data = res.data;
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => {
+          if (post.id === postId) {
+            return { ...post, isBookmarked: data.bookmarked };
+          }
+          return post;
+        })
+      );
     } catch (err) {
       console.error("Error toggling bookmark:", err);
     }
@@ -557,21 +480,10 @@ export default function FeedPage() {
     if (!commentText.trim()) return;
 
     try {
-      const response = await fetch(`http://localhost:8080/posts/${postId}/comments`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: commentText.trim(),
-          parentCommentId: parentCommentId
-        }),
+      await api.post(`/posts/${postId}/comments`, {
+        content: commentText.trim(),
+        parentCommentId: parentCommentId
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to post comment");
-      }
 
       await loadAllPosts();
       setActiveReplyCommentId(null);
@@ -595,17 +507,7 @@ export default function FeedPage() {
     });
 
     try {
-      const response = await fetch("http://localhost:8080/posts", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to upload your post.");
-      }
+      await api.post("/posts", formData);
 
       setNewPostCaption("");
       setNewPostLocation("");
@@ -641,21 +543,10 @@ export default function FeedPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:8080/posts/${editingPost.id}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: editCaption.trim(),
-          location: editLocation.trim(),
-        }),
+      await api.put(`/posts/${editingPost.id}`, {
+        content: editCaption.trim(),
+        location: editLocation.trim(),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update post.");
-      }
 
       setShowEditModal(false);
       setEditingPost(null);
@@ -675,16 +566,7 @@ export default function FeedPage() {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
 
     try {
-      const response = await fetch(`http://localhost:8080/posts/${postId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete post.");
-      }
+      await api.delete(`/posts/${postId}`);
 
       // Close menu
       setActivePostMenuId(null);

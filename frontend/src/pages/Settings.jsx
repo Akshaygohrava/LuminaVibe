@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "../services/api";
 import {
   Home,
   Compass,
@@ -53,21 +54,11 @@ export default function SettingsPage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (notifRes.ok) {
-          const d = await notifRes.json();
-          setUnreadNotifications(d.count);
-        }
+        const notifRes = await api.get("/notifications/unread-count");
+        setUnreadNotifications(notifRes.data.count);
 
-        const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (msgRes.ok) {
-          const d = await msgRes.json();
-          setUnreadMessages(d.count);
-        }
+        const msgRes = await api.get("/messages/unread-count");
+        setUnreadMessages(msgRes.data.count);
       } catch (e) {
         console.error(e);
       }
@@ -97,15 +88,8 @@ export default function SettingsPage() {
         return;
       }
       try {
-        const response = await fetch(`http://localhost:8080/settings/${currentUser.userId}`, {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Failed to load user preferences.");
-        }
-        const data = await response.json();
+        const response = await api.get(`/settings/${currentUser.userId}`);
+        const data = response.data;
         setIsPrivate(data.is_private ?? false);
         setDarkMode(data.dark_mode ?? true);
         setNotificationsEnabled(data.notifications_enabled ?? true);
@@ -139,18 +123,7 @@ export default function SettingsPage() {
     };
 
     try {
-      const response = await fetch(`http://localhost:8080/settings/${currentUser.userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update preferences on server.");
-      }
+      await api.put(`/settings/${currentUser.userId}`, payload);
 
       // Sync local storage user isPrivate state
       const userStr = localStorage.getItem("user");

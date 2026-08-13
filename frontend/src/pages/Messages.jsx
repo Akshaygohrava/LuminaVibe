@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import api from "../services/api";
 import {
   Home,
   Compass,
@@ -63,21 +64,11 @@ export default function MessagesPage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (notifRes.ok) {
-          const d = await notifRes.json();
-          setUnreadNotifications(d.count);
-        }
+        const notifRes = await api.get("/notifications/unread-count");
+        setUnreadNotifications(notifRes.data.count);
 
-        const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (msgRes.ok) {
-          const d = await msgRes.json();
-          setUnreadMessages(d.count);
-        }
+        const msgRes = await api.get("/messages/unread-count");
+        setUnreadMessages(msgRes.data.count);
       } catch (e) {
         console.error(e);
       }
@@ -162,15 +153,8 @@ export default function MessagesPage() {
 
   const loadConversations = async () => {
     try {
-      const res = await fetch("http://localhost:8080/messages/conversations", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data);
-      }
+      const res = await api.get("/messages/conversations");
+      setConversations(res.data);
     } catch (err) {
       console.error("Error loading conversations:", err);
     }
@@ -179,23 +163,11 @@ export default function MessagesPage() {
   const loadChatHistory = async (otherUserId, silent = false) => {
     if (!silent) setIsLoadingHistory(true);
     try {
-      const res = await fetch(`http://localhost:8080/messages/history/${otherUserId}`, {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setChatMessages(data);
-        
-        // Mark messages as read
-        await fetch(`http://localhost:8080/messages/read/${otherUserId}`, {
-          method: "PUT",
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          }
-        });
-      }
+      const res = await api.get(`/messages/history/${otherUserId}`);
+      setChatMessages(res.data);
+      
+      // Mark messages as read
+      await api.put(`/messages/read/${otherUserId}`);
     } catch (err) {
       console.error("Error loading chat history:", err);
     } finally {
@@ -211,23 +183,14 @@ export default function MessagesPage() {
     setNewMessageText("");
 
     try {
-      const res = await fetch("http://localhost:8080/messages", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          receiverId: activeChat.otherUserId,
-          content: text
-        })
+      const res = await api.post("/messages", {
+        receiverId: activeChat.otherUserId,
+        content: text
       });
 
-      if (res.ok) {
-        const newMsg = await res.json();
-        setChatMessages(prev => [...prev, newMsg]);
-        loadConversations();
-      }
+      const newMsg = res.data;
+      setChatMessages(prev => [...prev, newMsg]);
+      loadConversations();
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -236,15 +199,8 @@ export default function MessagesPage() {
   const openNewChatWindow = async () => {
     setShowNewChatModal(true);
     try {
-      const res = await fetch("http://localhost:8080/messages/users", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAvailableUsers(data);
-      }
+      const res = await api.get("/messages/users");
+      setAvailableUsers(res.data);
     } catch (err) {
       console.error("Error fetching message users:", err);
     }

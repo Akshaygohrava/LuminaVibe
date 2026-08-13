@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "../services/api";
 import {
   Home,
   Compass,
@@ -59,15 +60,8 @@ export default function NotificationsPage() {
   const loadNotifications = async () => {
     setIsLoadingNotifications(true);
     try {
-      const res = await fetch("http://localhost:8080/notifications", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
-      }
+      const res = await api.get("/notifications");
+      setNotifications(res.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -77,21 +71,11 @@ export default function NotificationsPage() {
 
   const loadUnreadCounts = async () => {
     try {
-      const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-      });
-      if (notifRes.ok) {
-        const d = await notifRes.json();
-        setUnreadNotifications(d.count);
-      }
+      const notifRes = await api.get("/notifications/unread-count");
+      setUnreadNotifications(notifRes.data.count);
 
-      const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-      });
-      if (msgRes.ok) {
-        const d = await msgRes.json();
-        setUnreadMessages(d.count);
-      }
+      const msgRes = await api.get("/messages/unread-count");
+      setUnreadMessages(msgRes.data.count);
     } catch (e) {
       console.error(e);
     }
@@ -99,12 +83,7 @@ export default function NotificationsPage() {
 
   const markAllNotificationsRead = async () => {
     try {
-      await fetch("http://localhost:8080/notifications/read", {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
+      await api.put("/notifications/read");
       setUnreadNotifications(0);
     } catch (e) {
       console.error(e);

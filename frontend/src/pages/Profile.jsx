@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import api from "../services/api";
 import {
   Home,
   Compass,
@@ -68,21 +69,11 @@ export default function ProfilePage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (notifRes.ok) {
-          const d = await notifRes.json();
-          setUnreadNotifications(d.count);
-        }
+        const notifRes = await api.get("/notifications/unread-count");
+        setUnreadNotifications(notifRes.data.count);
 
-        const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (msgRes.ok) {
-          const d = await msgRes.json();
-          setUnreadMessages(d.count);
-        }
+        const msgRes = await api.get("/messages/unread-count");
+        setUnreadMessages(msgRes.data.count);
       } catch (e) {
         console.error(e);
       }
@@ -154,32 +145,26 @@ export default function ProfilePage() {
   const loadBookmarkedPosts = async () => {
     setIsLoadingBookmarks(true);
     try {
-      const res = await fetch("http://localhost:8080/bookmarks", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
+      const res = await api.get("/bookmarks");
+      const data = res.data;
+      const normalized = data.map((p) => {
+        const mappedMedia = (p.media_list || []).map((m) => ({
+          mediaId: m.media_id || m.mediaId,
+          mediaUrl: m.media_url || m.mediaUrl,
+          mediaType: m.media_type || m.mediaType || "image/jpeg"
+        }));
+        return {
+          id: p.post_id,
+          title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
+          imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
+          mediaList: mappedMedia,
+          likes: p.likes_count || 0,
+          comments: p.comments ? p.comments.length : 0,
+          caption: p.content || "",
+          location: p.location || "",
+        };
       });
-      if (res.ok) {
-        const data = await res.json();
-        const normalized = data.map((p) => {
-          const mappedMedia = (p.media_list || []).map((m) => ({
-            mediaId: m.media_id || m.mediaId,
-            mediaUrl: m.media_url || m.mediaUrl,
-            mediaType: m.media_type || m.mediaType || "image/jpeg"
-          }));
-          return {
-            id: p.post_id,
-            title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
-            imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
-            mediaList: mappedMedia,
-            likes: p.likes_count || 0,
-            comments: p.comments ? p.comments.length : 0,
-            caption: p.content || "",
-            location: p.location || "",
-          };
-        });
-        setBookmarkedPosts(normalized);
-      }
+      setBookmarkedPosts(normalized);
     } catch (e) {
       console.error(e);
     } finally {
@@ -190,15 +175,8 @@ export default function ProfilePage() {
   const loadInsights = async () => {
     setIsLoadingInsights(true);
     try {
-      const res = await fetch("http://localhost:8080/users/insights", {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setInsights(data);
-      }
+      const res = await api.get("/users/insights");
+      setInsights(res.data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -249,16 +227,9 @@ export default function ProfilePage() {
     if (queryUsername && queryUsername !== currentUser.username) {
       setIsOwnProfile(false);
       setIsLoadingProfile(true);
-      fetch(`http://localhost:8080/users/username/${queryUsername}`, {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("User not found");
-          return res.json();
-        })
-        .then((data) => {
+      api.get(`/users/username/${queryUsername}`)
+        .then((response) => {
+          const data = response.data;
           const normUser = {
             userId: data.userId,
             username: data.username,
@@ -298,16 +269,9 @@ export default function ProfilePage() {
       return;
     }
     setIsLoadingUserPosts(true);
-    fetch(`http://localhost:8080/posts/user/${profileUser.userId}`, {
-      headers: {
-        "Authorization": `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load user posts.");
-        return res.json();
-      })
-      .then((data) => {
+    api.get(`/posts/user/${profileUser.userId}`)
+      .then((response) => {
+        const data = response.data;
         const normalized = data.map((p) => {
           const mappedMedia = (p.media_list || []).map((m) => ({
             mediaId: m.media_id || m.mediaId,
@@ -349,35 +313,23 @@ export default function ProfilePage() {
       };
 
       // 1. Fetch Follow Status
-      const statusRes = await fetch(`http://localhost:8080/follows/status/${profileUser.userId}`, { headers });
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        setFollowStatus(statusData.status);
-      }
+      const statusRes = await api.get(`/follows/status/${profileUser.userId}`);
+      setFollowStatus(statusRes.data.status);
 
       // 2. Fetch Followers List
-      const followersRes = await fetch(`http://localhost:8080/follows/followers/${profileUser.userId}`, { headers });
-      if (followersRes.ok) {
-        const followersData = await followersRes.json();
-        setFollowersList(followersData);
-        setFollowersCount(followersData.length);
-      }
+      const followersRes = await api.get(`/follows/followers/${profileUser.userId}`);
+      setFollowersList(followersRes.data);
+      setFollowersCount(followersRes.data.length);
 
       // 3. Fetch Following List
-      const followingRes = await fetch(`http://localhost:8080/follows/following/${profileUser.userId}`, { headers });
-      if (followingRes.ok) {
-        const followingData = await followingRes.json();
-        setFollowingList(followingData);
-        setFollowingCount(followingData.length);
-      }
+      const followingRes = await api.get(`/follows/following/${profileUser.userId}`);
+      setFollowingList(followingRes.data);
+      setFollowingCount(followingRes.data.length);
 
       // 4. Fetch Pending Requests
       if (isOwnProfile) {
-        const requestsRes = await fetch("http://localhost:8080/follows/requests", { headers });
-        if (requestsRes.ok) {
-          const requestsData = await requestsRes.json();
-          setPendingRequests(requestsData);
-        }
+        const requestsRes = await api.get("/follows/requests");
+        setPendingRequests(requestsRes.data);
       }
     } catch (err) {
       console.error("Error loading follow data:", err);
@@ -393,15 +345,8 @@ export default function ProfilePage() {
   const handleFollowToggle = async () => {
     if (!profileUser || profileUser.userId === 0) return;
     try {
-      const response = await fetch(`http://localhost:8080/follows/toggle/${profileUser.userId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (response.ok) {
-        await loadFollowData();
-      }
+      await api.post(`/follows/toggle/${profileUser.userId}`);
+      await loadFollowData();
     } catch (err) {
       console.error("Error toggling follow:", err);
     }
@@ -409,15 +354,8 @@ export default function ProfilePage() {
 
   const handleAcceptRequest = async (followerId) => {
     try {
-      const response = await fetch(`http://localhost:8080/follows/accept/${followerId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (response.ok) {
-        await loadFollowData();
-      }
+      await api.post(`/follows/accept/${followerId}`);
+      await loadFollowData();
     } catch (err) {
       console.error("Error accepting request:", err);
     }
@@ -425,15 +363,8 @@ export default function ProfilePage() {
 
   const handleRejectRequest = async (followerId) => {
     try {
-      const response = await fetch(`http://localhost:8080/follows/reject/${followerId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (response.ok) {
-        await loadFollowData();
-      }
+      await api.post(`/follows/reject/${followerId}`);
+      await loadFollowData();
     } catch (err) {
       console.error("Error rejecting request:", err);
     }
@@ -451,17 +382,8 @@ export default function ProfilePage() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8080/users/upload-avatar", {
-        method: "POST",
-        body: formData, // No Authorization headers required by backend upload endpoint
-      });
-
-      if (!response.ok) {
-        throw new Error("Avatar upload failed");
-      }
-
-      const resData = await response.json();
-      setEditAvatarUrl(resData.url);
+      const response = await api.post("/users/upload-avatar", formData);
+      setEditAvatarUrl(response.data.url);
     } catch (err) {
       setUpdateError(err.message || "Failed to upload profile picture.");
     } finally {
@@ -486,30 +408,8 @@ export default function ProfilePage() {
     };
 
     try {
-      const response = await fetch(`http://localhost:8080/users/${currentUser.userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(updatedData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let displayMessage = errorText;
-        try {
-          const parsed = JSON.parse(errorText);
-          if (parsed && parsed.message) {
-            displayMessage = parsed.message;
-          }
-        } catch (err) {
-          // not json
-        }
-        throw new Error(displayMessage || "Failed to save profile changes.");
-      }
-
-      const updatedUser = await response.json();
+      const response = await api.put(`/users/${currentUser.userId}`, updatedData);
+      const updatedUser = response.data;
       // Ensure backend keys match what local storage expects
       const storageUser = {
         userId: updatedUser.userId,
@@ -529,7 +429,18 @@ export default function ProfilePage() {
         setUpdateSuccess(false);
       }, 1000);
     } catch (err) {
-      setUpdateError(err.message);
+      let displayMessage = "Failed to save profile changes.";
+      if (err.response) {
+        const errorData = err.response.data;
+        if (typeof errorData === "string") {
+          displayMessage = errorData;
+        } else if (errorData && errorData.message) {
+          displayMessage = errorData.message;
+        }
+      } else {
+        displayMessage = err.message;
+      }
+      setUpdateError(displayMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -574,33 +485,21 @@ export default function ProfilePage() {
 
   const toggleListFollow = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:8080/follows/toggle/${userId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (response.ok) {
-        const statusRes = await fetch(`http://localhost:8080/follows/status/${userId}`, {
-          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-        });
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setListModalUsers(prev =>
-            prev.map(u => {
-              if (u.id === userId) {
-                return { 
-                  ...u, 
-                  isFollowing: statusData.status === "ACCEPTED",
-                  followStatus: statusData.status 
-                };
-              }
-              return u;
-            })
-          );
-        }
-        await loadFollowData();
-      }
+      await api.post(`/follows/toggle/${userId}`);
+      const statusRes = await api.get(`/follows/status/${userId}`);
+      setListModalUsers(prev =>
+        prev.map(u => {
+          if (u.id === userId) {
+            return { 
+              ...u, 
+              isFollowing: statusRes.data.status === "ACCEPTED",
+              followStatus: statusRes.data.status 
+            };
+          }
+          return u;
+        })
+      );
+      await loadFollowData();
     } catch (err) {
       console.error("Error toggling list follow:", err);
     }

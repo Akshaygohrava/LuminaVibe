@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import api from "../services/api";
 import {
   Eye,
   EyeOff,
@@ -119,20 +120,22 @@ export default function SignUpPage() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8080/users/upload-avatar", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Upload failed");
-      }
-
-      const resData = await response.json();
+      const response = await api.post("/users/upload-avatar", formData);
+      const resData = response.data;
       setValue("profile_picture_url", resData.url, { shouldValidate: true });
     } catch (err) {
-      setAvatarUploadError(err.message || "Failed to upload image.");
+      let displayMessage = "Failed to upload image.";
+      if (err.response) {
+        const errorData = err.response.data;
+        if (typeof errorData === "string") {
+          displayMessage = errorData;
+        } else if (errorData && errorData.message) {
+          displayMessage = errorData.message;
+        }
+      } else {
+        displayMessage = err.message;
+      }
+      setAvatarUploadError(displayMessage);
     } finally {
       setAvatarUploading(false);
     }
@@ -143,34 +146,24 @@ export default function SignUpPage() {
     setSubmitError(null);
     setDone(null);
     try {
-      const response = await fetch("http://localhost:8080/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let displayMessage = errorText;
-        try {
-          const parsedError = JSON.parse(errorText);
-          if (parsedError && parsedError.message) {
-            displayMessage = parsedError.message;
-          }
-        } catch (e) {
-          // Fallback to raw text
-        }
-        throw new Error(displayMessage || "Failed to create account. Please try again.");
-      }
-
+      await api.post("/users", data);
       setDone("Profile ready — redirecting to sign in page...");
       setTimeout(() => {
         window.navigateTo("/signin");
       }, 1500);
     } catch (error) {
-      setSubmitError(error.message);
+      let displayMessage = "Failed to create account. Please try again.";
+      if (error.response) {
+        const errorData = error.response.data;
+        if (typeof errorData === "string") {
+          displayMessage = errorData;
+        } else if (errorData && errorData.message) {
+          displayMessage = errorData.message;
+        }
+      } else {
+        displayMessage = error.message;
+      }
+      setSubmitError(displayMessage);
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import api from "../services/api";
 import {
   Home,
   Compass,
@@ -60,21 +61,11 @@ export default function ExplorePage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const notifRes = await fetch("http://localhost:8080/notifications/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (notifRes.ok) {
-          const d = await notifRes.json();
-          setUnreadNotifications(d.count);
-        }
+        const notifRes = await api.get("/notifications/unread-count");
+        setUnreadNotifications(notifRes.data.count);
 
-        const msgRes = await fetch("http://localhost:8080/messages/unread-count", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (msgRes.ok) {
-          const d = await msgRes.json();
-          setUnreadMessages(d.count);
-        }
+        const msgRes = await api.get("/messages/unread-count");
+        setUnreadMessages(msgRes.data.count);
       } catch (e) {
         console.error(e);
       }
@@ -194,32 +185,16 @@ export default function ExplorePage() {
       setIsSearching(true);
       setSearchError(null);
       try {
-        const response = await fetch(`http://localhost:8080/users/search?query=${encodeURIComponent(searchQuery)}`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json"
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load user search results.");
-        }
-
-        const data = await response.json();
+        const response = await api.get(`/users/search?query=${encodeURIComponent(searchQuery)}`);
+        const data = response.data;
         // Add follow toggle status property dynamically
         const processed = await Promise.all(data.map(async (u) => {
           if (u.userId === currentUser.userId) {
             return { ...u, followStatus: "SELF" };
           }
           try {
-            const statusRes = await fetch(`http://localhost:8080/follows/status/${u.userId}`, {
-              headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-            });
-            if (statusRes.ok) {
-              const statusData = await statusRes.json();
-              return { ...u, followStatus: statusData.status };
-            }
+            const statusRes = await api.get(`/follows/status/${u.userId}`);
+            return { ...u, followStatus: statusRes.data.status };
           } catch (e) {}
           return { ...u, followStatus: "NOT_FOLLOWING" };
         }));
@@ -237,30 +212,18 @@ export default function ExplorePage() {
 
   const toggleSearchFollow = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:8080/follows/toggle/${userId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (response.ok) {
-        const statusRes = await fetch(`http://localhost:8080/follows/status/${userId}`, {
-          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-        });
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setSearchResults(prev =>
-            prev.map(user => {
-              if (user.userId === userId) {
-                return { ...user, followStatus: statusData.status };
-              }
-              return user;
-            })
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Error toggling follow from search results:", err);
+      await api.post(`/follows/toggle/${userId}`);
+      const statusRes = await api.get(`/follows/status/${userId}`);
+      setSearchResults(prev =>
+        prev.map(user => {
+          if (user.userId === userId) {
+            return { ...user, followStatus: statusRes.data.status };
+          }
+          return user;
+        })
+      );
+    } catch (e) {
+      console.error("Error toggling follow from search results:", e);
     }
   };
 

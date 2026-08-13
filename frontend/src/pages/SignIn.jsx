@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import api from "../services/api";
 import { Eye, EyeOff, Sparkles, Check, ArrowRight, Mail, Lock } from "lucide-react";
 import authSide from "../assets/images/signin-sideimage.png";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
@@ -89,29 +90,8 @@ export default function SignInPage() {
     setSubmitError(null);
     setDone(null);
     try {
-      const response = await fetch("http://localhost:8080/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let displayMessage = errorText;
-        try {
-          const parsedError = JSON.parse(errorText);
-          if (parsedError && parsedError.message) {
-            displayMessage = parsedError.message;
-          }
-        } catch (e) {
-          // Fallback to raw text
-        }
-        throw new Error(displayMessage || "Failed to sign in. Please check your credentials.");
-      }
-
-      const resData = await response.json();
+      const response = await api.post("/auth/login", data);
+      const resData = response.data;
       localStorage.setItem("token", resData.token);
       localStorage.setItem("user", JSON.stringify(resData.userDto || resData.user));
 
@@ -119,8 +99,19 @@ export default function SignInPage() {
       setTimeout(() => {
         window.navigateTo("/feed");
       }, 1500);
-    } catch (error) {
-      setSubmitError(error.message);
+    } catch (err) {
+      let displayMessage = "Failed to sign in. Please check your credentials.";
+      if (err.response) {
+        const errorData = err.response.data;
+        if (typeof errorData === "string") {
+          displayMessage = errorData;
+        } else if (errorData && errorData.message) {
+          displayMessage = errorData.message;
+        }
+      } else {
+        displayMessage = err.message;
+      }
+      setSubmitError(displayMessage);
     } finally {
       setIsLoading(false);
     }
