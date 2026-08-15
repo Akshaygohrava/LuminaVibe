@@ -1,0 +1,75 @@
+Here is a simple explanation of how registration and login work and interact:
+
+Step 1: User Registration (Sign Up)
+When a new user signs up on the frontend, they send their details to the backend.
+
+Endpoint used: POST /users (handled by 
+
+UserController.java
+)
+How it works:
+The frontend sends a JSON payload with username, email, and a plain text password.
+The backend encrypts (hashes) the password using BCrypt so that raw passwords are never saved in plain text.
+The user is saved to the database with the hashed password.
+Step 2: User Login (Sign In)
+Once the user is registered, they can log in.
+
+Endpoint used: POST /auth/login (handled by 
+
+AuthController.java
+)
+How it works:
+The frontend sends a JSON body containing email and password (
+
+LoginRequest
+).
+The backend queries the database for a user with that email.
+The security manager compares the raw login password with the hashed password stored in the database.
+If they match:
+The backend generates a secure, signed JWT (JSON Web Token).
+The backend returns a 
+
+LoginResponse
+ containing the JWT token and the user's profile details.
+If they do not match, it returns 401 Unauthorized (Bad credentials).
+Step 3: Making Protected API Requests
+After a successful login, how does the frontend stay logged in?
+
+The frontend saves the received JWT token in storage (like localStorage).
+For every subsequent request to a protected endpoint (like fetching posts or editing profile), the frontend attaches the token in the HTTP header:
+http
+Authorization: Bearer <your-jwt-token-here>
+The backend's 
+
+AuthTokenFilter
+automatically intercepts the request, checks if the token is valid, and lets the request pass through if authenticated.
+
+
+Create An Detailed Overview Summury of the Project , all endpoint, all methods and workable things to exaplain to the external interviewer...
+* steps to implemennt jwt authentication ?
+* what spring security is doing in my project ? like api securing ects and all
+* How Messages are working, which method is used https or websockets?
+* and other pages questions
+in simple 5-10 lines, 
+Project Presentation Flow, 
+tech used,
+project Objective like , Register, login , Create Post, story, notficatio, messages,
+create an txt files, make it not bit long 
+
+
+Create a file contains , questions like 
+Find user 11 s, all follower with name ects, 
+Find user 11 s, all following with name ..
+Find his no. Of post ,followers ects 30-40 questions, with answers in txt files
+
+
+
+
+
+
+
+
+
+
+
+
