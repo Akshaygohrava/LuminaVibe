@@ -1,0 +1,328 @@
+LuminaVibe - SQL Database Query Q&A (Interview Prep)
+===================================================
+Below is a list of 35 database query questions and answers matching the schema of LuminaVibe. These queries target a specific user (e.g., User ID = 11) and illustrate how the tables (users, follows, posts, comments, likes, messages, and settings) interact.
+
+---
+
+Q1: How do you find the full name and username of User 11?
+Answer:
+SELECT full_name, username FROM users WHERE user_id = 11;
+
+---
+
+Q2: How do you retrieve all followers of User 11 (their names and usernames) whose follow request is accepted?
+Answer:
+SELECT u.user_id, u.full_name, u.username 
+FROM follows f
+JOIN users u ON f.follower_id = u.user_id
+WHERE f.following_id = 11 AND f.status = 'ACCEPTED';
+
+---
+
+Q3: How do you retrieve all users that User 11 is currently following (their names and usernames)?
+Answer:
+SELECT u.user_id, u.full_name, u.username 
+FROM follows f
+JOIN users u ON f.following_id = u.user_id
+WHERE f.follower_id = 11 AND f.status = 'ACCEPTED';
+
+---
+
+Q4: How do you count the total number of followers for User 11?
+Answer:
+SELECT COUNT(*) AS total_followers 
+FROM follows 
+WHERE following_id = 11 AND status = 'ACCEPTED';
+
+---
+
+Q5: How do you count the total number of users User 11 is following?
+Answer:
+SELECT COUNT(*) AS total_following 
+FROM follows 
+WHERE follower_id = 11 AND status = 'ACCEPTED';
+
+---
+
+Q6: How do you count the total number of posts published by User 11?
+Answer:
+SELECT COUNT(*) AS total_posts FROM posts WHERE user_id = 11;
+
+---
+
+Q7: How do you list all posts made by User 11 (including content, location, and creation timestamp) ordered from newest to oldest?
+Answer:
+SELECT post_id, content, location, created_at 
+FROM posts 
+WHERE user_id = 11 
+ORDER BY created_at DESC;
+
+---
+
+Q8: How do you get all posts of User 11 along with their associated media URLs and types?
+Answer:
+SELECT p.post_id, p.content, pm.media_url, pm.media_type 
+FROM posts p
+LEFT JOIN post_media pm ON p.post_id = pm.post_id
+WHERE p.user_id = 11;
+
+---
+
+Q9: How do you find the count of posts that User 11 has archived?
+Answer:
+SELECT COUNT(*) AS archived_count FROM posts WHERE user_id = 11 AND is_archived = TRUE;
+
+---
+
+Q10: How do you find all mutual followers of User 11 (users who follow User 11 AND whom User 11 follows back)?
+Answer:
+SELECT u.user_id, u.username, u.full_name
+FROM users u
+WHERE u.user_id IN (
+    SELECT f1.follower_id FROM follows f1 WHERE f1.following_id = 11 AND f1.status = 'ACCEPTED'
+) AND u.user_id IN (
+    SELECT f2.following_id FROM follows f2 WHERE f2.follower_id = 11 AND f2.status = 'ACCEPTED'
+);
+
+---
+
+Q11: How do you find the total number of likes received across all of User 11's posts?
+Answer:
+SELECT COUNT(*) AS total_likes_received 
+FROM likes l
+JOIN posts p ON l.target_id = p.post_id
+WHERE p.user_id = 11 AND l.target_type = 'post';
+
+---
+
+Q12: How do you find the top 3 most liked posts of User 11?
+Answer:
+SELECT p.post_id, p.content, COUNT(l.like_id) AS like_count
+FROM posts p
+LEFT JOIN likes l ON p.post_id = l.target_id AND l.target_type = 'post'
+WHERE p.user_id = 11
+GROUP BY p.post_id
+ORDER BY like_count DESC
+LIMIT 3;
+
+---
+
+Q13: How do you find all posts that User 11 has bookmarked?
+Answer:
+SELECT p.post_id, p.content, u.username AS author
+FROM bookmarks b
+JOIN posts p ON b.post_id = p.post_id
+JOIN users u ON p.user_id = u.user_id
+WHERE b.user_id = 11;
+
+---
+
+Q14: How do you find the total number of comments written by User 11?
+Answer:
+SELECT COUNT(*) AS total_comments FROM comments WHERE user_id = 11;
+
+---
+
+Q15: How do you retrieve all comments made on User 11's posts (including commenter username and content)?
+Answer:
+SELECT c.comment_id, u.username AS commenter, c.content, c.post_id
+FROM comments c
+JOIN posts p ON c.post_id = p.post_id
+JOIN users u ON c.user_id = u.user_id
+WHERE p.user_id = 11
+ORDER BY c.created_at DESC;
+
+---
+
+Q16: How do you find all direct replies (child comments) to a specific comment (ID = 45)?
+Answer:
+SELECT comment_id, content, user_id, created_at 
+FROM comments 
+WHERE parent_comment_id = 45 
+ORDER BY created_at ASC;
+
+---
+
+Q17: How do you count the number of pending follow requests that User 11 needs to approve?
+Answer:
+SELECT COUNT(*) AS pending_requests 
+FROM follows 
+WHERE following_id = 11 AND status = 'PENDING';
+
+---
+
+Q18: How do you retrieve the list of pending follow requests for User 11 with requester names?
+Answer:
+SELECT u.user_id, u.username, u.full_name 
+FROM follows f
+JOIN users u ON f.follower_id = u.user_id
+WHERE f.following_id = 11 AND f.status = 'PENDING';
+
+---
+
+Q19: How do you retrieve the complete message history (chat conversation) between User 11 and User 22, ordered chronologically?
+Answer:
+SELECT message_id, sender_id, receiver_id, content, created_at, is_read
+FROM messages
+WHERE (sender_id = 11 AND receiver_id = 22) OR (sender_id = 22 AND receiver_id = 11)
+ORDER BY created_at ASC;
+
+---
+
+Q20: How do you count the number of unread messages waiting for User 11?
+Answer:
+SELECT COUNT(*) AS unread_messages_count 
+FROM messages 
+WHERE receiver_id = 11 AND is_read = FALSE;
+
+---
+
+Q21: How do you find the last message exchanged between User 11 and each of their active chat contacts?
+Answer:
+SELECT m1.*
+FROM messages m1
+WHERE m1.message_id IN (
+    SELECT MAX(m2.message_id)
+    FROM messages m2
+    WHERE m2.sender_id = 11 OR m2.receiver_id = 11
+    GROUP BY CASE 
+        WHEN m2.sender_id = 11 THEN m2.receiver_id 
+        ELSE m2.sender_id 
+    END
+)
+ORDER BY m1.created_at DESC;
+
+---
+
+Q22: How do you retrieve all unread notifications for User 11?
+Answer:
+SELECT notification_id, type, message, creator_id, created_at 
+FROM notifications 
+WHERE recipient_id = 11 AND is_read = FALSE 
+ORDER BY created_at DESC;
+
+---
+
+Q23: How do you check if User 11's account is configured as a Private Account?
+Answer:
+SELECT is_private FROM users WHERE user_id = 11;
+
+---
+
+Q24: How do you retrieve the UI settings (dark mode status and preferred language) for User 11?
+Answer:
+SELECT dark_mode, language FROM user_settings WHERE user_id = 11;
+
+---
+
+Q25: How do you list all active (non-expired) stories of User 11?
+Answer:
+SELECT story_id, created_at, expires_at 
+FROM stories 
+WHERE user_id = 11 AND expires_at > NOW()
+ORDER BY created_at DESC;
+
+---
+
+Q26: How do you list all stories of User 11 along with their media URLs?
+Answer:
+SELECT s.story_id, s.created_at, sm.media_url, sm.media_type
+FROM stories s
+LEFT JOIN story_media sm ON s.story_id = sm.story_id
+WHERE s.user_id = 11;
+
+---
+
+Q27: How do you fetch the usernames and avatar URLs of the top 5 most viewed profiles?
+Answer:
+SELECT username, profile_picture_url, profile_views 
+FROM users 
+ORDER BY profile_views DESC 
+LIMIT 5;
+
+---
+
+Q28: How do you calculate the engagement rate of User 11's posts (defined as (Likes + Comments) / Total Posts)?
+Answer:
+SELECT 
+    p_count.total_posts,
+    (COALESCE(l_count.total_likes, 0) + COALESCE(c_count.total_comments, 0)) AS total_engagement,
+    CASE 
+        WHEN p_count.total_posts = 0 THEN 0.0
+        ELSE ((COALESCE(l_count.total_likes, 0) + COALESCE(c_count.total_comments, 0)) / p_count.total_posts) * 100.0
+    END AS engagement_rate_percentage
+FROM (SELECT COUNT(*) AS total_posts FROM posts WHERE user_id = 11) p_count
+CROSS JOIN (
+    SELECT COUNT(*) AS total_likes 
+    FROM likes l
+    JOIN posts p ON l.target_id = p.post_id AND l.target_type = 'post'
+    WHERE p.user_id = 11
+) l_count
+CROSS JOIN (
+    SELECT COUNT(*) AS total_comments 
+    FROM comments c
+    JOIN posts p ON c.post_id = p.post_id
+    WHERE p.user_id = 11
+) c_count;
+
+---
+
+Q29: How do you find users who have liked every post made by User 11?
+Answer:
+SELECT u.user_id, u.username
+FROM users u
+WHERE NOT EXISTS (
+    SELECT p.post_id FROM posts p WHERE p.user_id = 11
+    EXCEPT
+    SELECT l.user_id FROM likes l 
+    JOIN posts p2 ON l.target_id = p2.post_id AND l.target_type = 'post'
+    WHERE p2.user_id = 11 AND l.user_id = u.user_id
+);
+
+---
+
+Q30: How do you find the total number of followers User 11 gained in the last 30 days?
+Answer:
+SELECT COUNT(*) AS new_followers 
+FROM follows 
+WHERE following_id = 11 
+  AND status = 'ACCEPTED' 
+  AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY);
+
+---
+
+Q31: How do you delete all likes made by User 11?
+Answer:
+DELETE FROM likes WHERE user_id = 11;
+
+---
+
+Q32: How do you retrieve all posts containing a specific search phrase (e.g. "vibes")?
+Answer:
+SELECT post_id, content, user_id, created_at 
+FROM posts 
+WHERE content LIKE '%vibes%' AND is_archived = FALSE;
+
+---
+
+Q33: How do you retrieve the unread notification count grouped by notification type for User 11?
+Answer:
+SELECT type, COUNT(*) AS count 
+FROM notifications 
+WHERE recipient_id = 11 AND is_read = FALSE 
+GROUP BY type;
+
+---
+
+Q34: How do you list the newest registered users in the system (top 5)?
+Answer:
+SELECT user_id, username, created_at 
+FROM users 
+ORDER BY created_at DESC 
+LIMIT 5;
+
+---
+
+Q35: How do you change User 11's default language setting to Spanish ('es')?
+Answer:
+UPDATE user_settings SET language = 'es' WHERE user_id = 11;

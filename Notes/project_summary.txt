@@ -1,0 +1,59 @@
+LuminaVibe - Interview Preparation & Project Overview Summary
+===========================================================
+
+1. Executive Summary (Project Overview in 10 Lines)
+--------------------------------------------------
+LuminaVibe is a premium, feature-rich social media web application designed to share media, stories, and messages in a modern user interface. Users can register accounts, log in securely, publish posts with image uploads, create expiring stories, interact through likes/comments/bookmarks, and direct message other users. The frontend is built on React (Vite) with a highly responsive, custom-styled glassmorphic CSS design that seamlessly supports dynamic dark and light themes. The backend is powered by Spring Boot (Java) and Spring Security, utilizing a MySQL database for persistent storage. Secure authentication is handled via JSON Web Tokens (JWT) for stateless session management. Communication is REST-based with live-style polling for messaging and notifications. The project features clean architectural layers separating controllers, services, repositories, and entities, providing high security and database constraint safety.
+
+2. Technology Stack Used
+------------------------
+* Frontend: React.js (Vite), TailwindCSS + Vanilla CSS, Lucide React (Icons), Axios (API client).
+* Backend: Java 17, Spring Boot, Spring Data JPA, Spring Security.
+* Database: MySQL (relational database).
+* Build Tool: Maven (dependency management & packaging).
+* Utilities: Lombok (reduces boilerplate code), ModelMapper (DTO mapping), JSON Web Token (JWT).
+
+3. Project Objectives & Core Features
+-------------------------------------
+* User Management: Secure sign-up, sign-in, profile management, profile view insights, and full account deletion.
+* Post System: Creating posts, uploading images, location tagging, post feeds, archiving, and bookmarking.
+* Story System: Expiring stories (24h) with media.
+* Interactions: Liking posts/comments, commenting (with nested replies), and following/unfollowing accounts.
+* Notification System: Live updates on likes, comments, follow requests, and messages.
+* Messaging: Real-time style direct chats between users.
+* Settings: Interactive toggles for Account Privacy, Dark/Light Mode, Languages, and Deletion.
+
+4. Project Presentation Flow
+----------------------------
+1. Landing page (Welcome, Registration form, and Login form).
+2. Feed / Dashboard (Scrollable posts feed, stories tray at the top, and post creation form).
+3. Discover / Explore (Search for users, view trending tags/posts).
+4. Direct Messages (Sidebar listing active chats, click to load historical dialog and exchange messages).
+5. User Profile (Stats showing post count, likes, comments, and profile view insights; tabbed view of posts/saved items).
+6. Settings Page (Toggles for privacy, light/dark theme, language select, Logout, and the "Delete Account & Data" action).
+
+5. Steps to Implement JWT Authentication
+----------------------------------------
+1. Client logs in via POST request containing credentials (`username`/`password`).
+2. AuthenticationManager validates credentials. On success, the server generates a JWT containing the user's username/email using a secret key.
+3. The JWT is returned in the response payload. The client receives it and stores it in `localStorage` alongside user profile metadata.
+4. On subsequent requests, the client attaches the JWT token to the HTTP Request header: `Authorization: Bearer <token>`.
+5. An interceptor filter (`AuthTokenFilter`) intercepts every incoming HTTP request.
+6. The filter extracts and parses the JWT token from the `Authorization` header.
+7. If validated, the username is extracted, user details are loaded from the database, and a security context authentication token is set in Spring Security's `SecurityContextHolder`.
+
+6. What Spring Security Is Doing In This Project
+-----------------------------------------------
+* Authentication & Authorization: Verifies user identity and defines access rules.
+* Route Security: Permits public paths (registration `/users`, login `/auth/login`, media `/uploads/**`) and secures all other APIs (requires valid JWT token).
+* Cors Configuration: Allows safe cross-origin communication between the Vite frontend (`http://localhost:5173`) and Spring Boot backend (`http://localhost:8080`).
+* Request Filtering: Runs `AuthTokenFilter` before UsernamePasswordAuthenticationFilter to extract token credentials on every REST request.
+* Context Injection: Exposes current user details to controllers so endpoints can fetch the logged-in user context.
+
+7. How Messages Work (HTTP vs WebSockets)
+-----------------------------------------
+* Communication Protocol: Messages are sent and retrieved using HTTP REST endpoints (HTTP/HTTPS) and NOT WebSockets.
+* Sending: Done via a POST request to `/messages` sending the receiver ID and text payload.
+* Fetching History: Done via a GET request to `/messages/history/{otherUserId}`.
+* Live-Style Polling: The frontend client uses a periodic timer (`setInterval` every 10 seconds) that executes GET requests to `/messages/unread-count` and `/notifications/unread-count`. When a user has a chat open, the interface updates regularly by requesting the latest message list, simulating real-time chats efficiently.
+* Interview Tip: Emphasize that HTTP Polling is chosen here to maintain high scalability and stateless simplicity in Spring Boot, without the connection overhead of long-running WebSocket TCP connections.
