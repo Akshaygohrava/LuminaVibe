@@ -11,8 +11,8 @@
 [![MySQL 8.0](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com)
 [![Java 17](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org)
 
-[![Live Preview](https://img.shields.io/badge/Live_Preview-Demo-brightgreen?style=for-the-badge&logo=vercel&logoColor=white)](https://luminavibe.vercel.app)
-[![API Docs](https://img.shields.io/badge/API_Docs-6C63FF?style=for-the-badge&logo=spring&logoColor=white)](https://api.luminavibe.com)
+[![Live Preview](https://img.shields.io/badge/Live_Preview-Demo-brightgreen?style=for-the-badge&logo=vercel&logoColor=white)](https://luminavibe-two.vercel.app/)
+[![Backend API](https://img.shields.io/badge/Backend_API-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://luminavibe-backend.onrender.com/)
 [![License-MIT](https://img.shields.io/badge/License-MIT-4ECDC4?style=for-the-badge)](LICENSE)
 
 </div>
@@ -79,8 +79,8 @@ Engineered with a **Spring Boot** backend and a reactive **Vite + React** fronte
 ## 🚀 Live Demo & Resources
 | Resource | Link |
 | :--- | :--- |
-| **🌐 Live Application** | [luminavibe.vercel.app](https://luminavibe.vercel.app) |
-| **📡 Backend API** | [api.luminavibe.com](https://api.luminavibe.com) |
+| **🌐 Live Application** | [luminavibe-two.vercel.app](https://luminavibe-two.vercel.app/) |
+| **📡 Backend API** | [luminavibe-backend.onrender.com](https://luminavibe-backend.onrender.com/) |
 | **📚 API Documentation** | Swagger UI (e.g. `/swagger-ui/index.html`) |
 
 ---
