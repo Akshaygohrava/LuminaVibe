@@ -1,0 +1,16 @@
+**/.git
+**/.gitignore
+**/.project
+**/.classpath
+**/.factorypath
+**/.settings
+**/.idea
+**/.vscode
+target/
+uploads/
+*.log
+.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+HELP.md
+

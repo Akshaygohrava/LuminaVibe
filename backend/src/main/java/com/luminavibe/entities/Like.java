@@ -26,7 +26,7 @@ public class Like {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", nullable = false, columnDefinition = "ENUM('post', 'comment')")
+    @Column(name = "target_type", nullable = false, length = 20)
     private TargetType targetType;
 
     @Column(name = "target_id", nullable = false)
