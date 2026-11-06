@@ -212,7 +212,11 @@ export default function SignUpPage() {
             />
             <div className="absolute inset-0" style={{ backgroundImage: "var(--gradient-ink)" }} />
             <div className="relative flex h-full flex-col justify-between p-10">
-              <div className="flex items-center gap-2.5">
+              <div
+                className="flex items-center gap-2.5 cursor-pointer"
+                onClick={() => window.navigateTo(localStorage.getItem("token") ? "/feed" : "/")}
+                title="Go to Home"
+              >
                 <img src={logoIcon} alt="" className="h-9 w-9 rounded-xl object-cover" />
                 <span className="font-display text-lg font-semibold tracking-tight text-foreground">
                   LuminaVibe
@@ -262,7 +266,11 @@ export default function SignUpPage() {
             className="w-full max-w-md rounded-[2rem] border border-white/10 bg-card/60 p-7 backdrop-blur-2xl sm:p-9"
             style={{ boxShadow: "var(--shadow-panel)" }}
           >
-            <div className="mb-7 flex items-center gap-2.5 lg:hidden">
+            <div
+              className="mb-7 flex items-center gap-2.5 lg:hidden cursor-pointer"
+              onClick={() => window.navigateTo(localStorage.getItem("token") ? "/feed" : "/")}
+              title="Go to Home"
+            >
               <img src={logoIcon} alt="" className="h-9 w-9 rounded-xl object-cover" />
               <span className="font-display text-lg font-semibold tracking-tight text-foreground">LuminaVibe</span>
             </div>

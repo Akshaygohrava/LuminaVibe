@@ -22,8 +22,10 @@ import {
 import "../assets/styles/Feed.css";
 import "../assets/styles/Explore.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import CreatePostModal from "../components/CreatePostModal";
 
 export default function ExplorePage() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   // Authentication & User state
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -274,7 +276,11 @@ export default function ExplorePage() {
       <div className="feed-layout">
         {/* LEFT SIDEBAR (Desktop/Tablet) */}
         <aside className="sidebar-left">
-          <div className="sidebar-logo flex items-center gap-2.5">
+          <div
+            className="sidebar-logo flex items-center gap-2.5 cursor-pointer"
+            onClick={() => window.navigateTo("/feed")}
+            title="Go to Home"
+          >
             <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
             <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
           </div>
@@ -307,7 +313,7 @@ export default function ExplorePage() {
 
           <button
             className="sidebar-btn-create"
-            onClick={() => window.navigateTo("/feed")}
+            onClick={() => setShowCreateModal(true)}
             aria-label="Create Post"
           >
             <Plus className="size-5" />
@@ -528,7 +534,7 @@ export default function ExplorePage() {
         </button>
         <button
           className="mobile-nav-btn-fab"
-          onClick={() => window.navigateTo("/feed")}
+          onClick={() => setShowCreateModal(true)}
           aria-label="Create Post"
         >
           <Plus className="size-6" />
@@ -623,6 +629,14 @@ export default function ExplorePage() {
           </div>
         </div>
       )}
+
+      {/* CREATE POST MODAL */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPostCreated={() => window.navigateTo("/feed")}
+        darkMode={darkMode}
+      />
     </div>
   );
 }

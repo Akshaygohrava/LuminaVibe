@@ -27,8 +27,10 @@ import {
 import "../assets/styles/Feed.css";
 import "../assets/styles/Profile.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import CreatePostModal from "../components/CreatePostModal";
 
 export default function ProfilePage() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   // Authentication & User state
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -263,44 +265,46 @@ export default function ProfilePage() {
   }, [searchUrl, currentUser]);
 
   // Fetch user posts dynamically based on profileUser
-  useEffect(() => {
+  const loadUserPosts = async () => {
     if (!profileUser || profileUser.userId === 0) {
       setIsLoadingUserPosts(false);
       return;
     }
     setIsLoadingUserPosts(true);
-    api.get(`/posts/user/${profileUser.userId}`)
-      .then((response) => {
-        const data = response.data;
-        const normalized = data.map((p) => {
-          const mappedMedia = (p.media_list || []).map((m) => ({
-            mediaId: m.media_id || m.mediaId,
-            mediaUrl: m.media_url || m.mediaUrl,
-            mediaType: m.media_type || m.mediaType || "image/jpeg"
-          }));
-          return {
-            id: p.post_id,
-            title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
-            imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
-            mediaList: mappedMedia,
-            likes: Math.floor(Math.random() * 200) + 14,
-            comments: 0,
-            caption: p.content || "",
-            location: p.location || "",
-          };
-        });
-        setUserPosts(normalized);
-        setIsLoadingUserPosts(false);
-      })
-      .catch((err) => {
-        console.error("Error loading user posts:", err);
-        // Fallback mockup
-        setUserPosts([
-          { id: 1, title: "Training Session", imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&auto=format&fit=crop", likes: 843, comments: 120, caption: "Court views tonight. Working on three-point releases and acceleration drills. 💪🏀", mediaList: [] },
-          { id: 2, title: "Match Day", imageUrl: "https://images.unsplash.com/photo-1519766304817-4f37bda74a27?w=600&auto=format&fit=crop", likes: 1102, comments: 245, caption: "Championship playoffs! Team chemistry was on point today. MVP vibes. 🏆🔥", mediaList: [] },
-        ]);
-        setIsLoadingUserPosts(false);
+    try {
+      const response = await api.get(`/posts/user/${profileUser.userId}`);
+      const data = response.data;
+      const normalized = data.map((p) => {
+        const mappedMedia = (p.media_list || []).map((m) => ({
+          mediaId: m.media_id || m.mediaId,
+          mediaUrl: m.media_url || m.mediaUrl,
+          mediaType: m.media_type || m.mediaType || "image/jpeg"
+        }));
+        return {
+          id: p.post_id,
+          title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
+          imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
+          mediaList: mappedMedia,
+          likes: Math.floor(Math.random() * 200) + 14,
+          comments: 0,
+          caption: p.content || "",
+          location: p.location || "",
+        };
       });
+      setUserPosts(normalized);
+    } catch (err) {
+      console.error("Error loading user posts:", err);
+      setUserPosts([
+        { id: 1, title: "Training Session", imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&auto=format&fit=crop", likes: 843, comments: 120, caption: "Court views tonight. Working on three-point releases and acceleration drills. 💪🏀", mediaList: [] },
+        { id: 2, title: "Match Day", imageUrl: "https://images.unsplash.com/photo-1519766304817-4f37bda74a27?w=600&auto=format&fit=crop", likes: 1102, comments: 245, caption: "Championship playoffs! Team chemistry was on point today. MVP vibes. 🏆🔥", mediaList: [] },
+      ]);
+    } finally {
+      setIsLoadingUserPosts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUserPosts();
   }, [profileUser]);
 
   // Load follower and following counts/lists dynamically
@@ -539,12 +543,19 @@ export default function ProfilePage() {
         <button className="cover-btn-pill" onClick={() => window.navigateTo("/feed")} aria-label="Go back">
           <ChevronLeft className="size-5" style={{ color: darkMode ? "#ffffff" : "#0f172a" }} />
         </button>
-        <span className="mobile-logo text-base sm:text-lg font-bold truncate max-w-[200px]" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
-          {profileUser?.username ? `@${profileUser.username}` : "Profile"}
-        </span>
+        <div
+          className="flex items-center gap-1.5 cursor-pointer min-w-0"
+          onClick={() => window.navigateTo("/feed")}
+          title="Go to Home"
+        >
+          <img src={logoIcon} alt="" className="size-6 rounded-lg object-cover shrink-0" />
+          <span className="mobile-logo text-base sm:text-lg font-bold truncate max-w-[160px]" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
+            {profileUser?.username ? `@${profileUser.username}` : "Profile"}
+          </span>
+        </div>
         <div className="mobile-header-actions">
           {isOwnProfile && (
-            <button className="icon-badge-btn" onClick={() => setShowEditModal(true)} aria-label="Edit Profile" title="Edit Profile">
+            <button className="icon-badge-btn" onClick={() => window.navigateTo("/settings")} aria-label="Settings" title="Settings">
               <Settings className="size-5" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }} />
             </button>
           )}
@@ -557,7 +568,11 @@ export default function ProfilePage() {
       <div className="feed-layout">
         {/* LEFT SIDEBAR (Desktop/Tablet) */}
         <aside className="sidebar-left">
-          <div className="sidebar-logo flex items-center gap-2.5">
+          <div
+            className="sidebar-logo flex items-center gap-2.5 cursor-pointer"
+            onClick={() => window.navigateTo("/feed")}
+            title="Go to Home"
+          >
             <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
             <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
           </div>
@@ -590,7 +605,7 @@ export default function ProfilePage() {
 
           <button
             className="sidebar-btn-create"
-            onClick={() => window.navigateTo("/feed")}
+            onClick={() => setShowCreateModal(true)}
             aria-label="Create Post"
           >
             <Plus className="size-5" />
@@ -628,7 +643,7 @@ export default function ProfilePage() {
                     </button>
                     {isOwnProfile && (
                       <div className="flex gap-2">
-                        <button className="cover-btn-pill" onClick={() => setShowEditModal(true)} title="Settings">
+                        <button className="cover-btn-pill" onClick={() => window.navigateTo("/settings")} title="Settings" aria-label="Settings">
                           <Settings className="size-5 text-white" />
                         </button>
                       </div>
@@ -958,7 +973,7 @@ export default function ProfilePage() {
         </button>
         <button
           className="mobile-nav-btn-fab"
-          onClick={() => window.navigateTo("/feed")}
+          onClick={() => setShowCreateModal(true)}
           aria-label="Create Post"
         >
           <Plus className="size-6" />
@@ -1282,6 +1297,14 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* CREATE POST MODAL */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPostCreated={loadUserPosts}
+        darkMode={darkMode}
+      />
     </div>
   );
 }

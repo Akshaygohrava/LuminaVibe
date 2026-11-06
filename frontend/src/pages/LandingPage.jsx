@@ -298,7 +298,13 @@ function SiteNav() {
       >
         <a
           href="#top"
-          className="group flex min-w-0 items-center gap-2 pl-0.5 font-display text-lg font-bold sm:gap-2.5 sm:pl-1 sm:text-xl"
+          onClick={(e) => {
+            if (localStorage.getItem("token")) {
+              e.preventDefault();
+              window.navigateTo("/feed");
+            }
+          }}
+          className="group flex min-w-0 items-center gap-2 pl-0.5 font-display text-lg font-bold sm:gap-2.5 sm:pl-1 sm:text-xl cursor-pointer"
         >
           <span className="relative grid size-8 shrink-0 place-items-center rounded-xl overflow-hidden transition-all duration-500 group-hover:rotate-[18deg] sm:size-9">
             <img src={logoIcon} alt="LuminaVibe logo" className="h-full w-full object-cover" />
@@ -544,7 +550,16 @@ function SiteFooter() {
       <div className="mx-auto max-w-6xl px-5 py-14 sm:py-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)]">
           <div className="min-w-0">
-            <a href="#top" className="flex items-center gap-2.5 font-display text-xl font-bold">
+            <a
+              href="#top"
+              onClick={(e) => {
+                if (localStorage.getItem("token")) {
+                  e.preventDefault();
+                  window.navigateTo("/feed");
+                }
+              }}
+              className="flex items-center gap-2.5 font-display text-xl font-bold cursor-pointer"
+            >
               <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-aurora">
                 <Sparkles className="size-4 text-primary-foreground" />
               </span>

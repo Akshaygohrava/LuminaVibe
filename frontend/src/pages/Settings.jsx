@@ -17,12 +17,15 @@ import {
   Check,
   Languages,
   Trash2,
+  ChevronLeft,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import "../assets/styles/Settings.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import CreatePostModal from "../components/CreatePostModal";
 
 export default function SettingsPage() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   // Authentication & User state
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -178,11 +181,28 @@ export default function SettingsPage() {
     <div className={`feed-page-container settings-page-container ${darkMode ? "dark" : "light light-theme"}`}>
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-        <span className="mobile-logo" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
-          Settings
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            className="cover-btn-pill"
+            onClick={() => window.navigateTo("/profile")}
+            aria-label="Go back"
+            title="Back to Profile"
+          >
+            <ChevronLeft className="size-5" style={{ color: darkMode ? "#ffffff" : "#0f172a" }} />
+          </button>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => window.navigateTo("/feed")}
+            title="Go to Home"
+          >
+            <img src={logoIcon} alt="" className="size-7 rounded-lg object-cover" />
+            <span className="mobile-logo text-base sm:text-lg font-bold" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
+              Settings
+            </span>
+          </div>
+        </div>
         <div className="mobile-header-actions">
-          <button className="icon-badge-btn" onClick={handleLogout} aria-label="Log Out">
+          <button className="icon-badge-btn" onClick={handleLogout} aria-label="Log Out" title="Log Out">
             <LogOut className="size-5" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }} />
           </button>
         </div>
@@ -191,7 +211,11 @@ export default function SettingsPage() {
       <div className="feed-layout">
         {/* LEFT SIDEBAR (Desktop/Tablet) */}
         <aside className="sidebar-left">
-          <div className="sidebar-logo flex items-center gap-2.5">
+          <div
+            className="sidebar-logo flex items-center gap-2.5 cursor-pointer"
+            onClick={() => window.navigateTo("/feed")}
+            title="Go to Home"
+          >
             <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
             <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
           </div>
@@ -224,7 +248,7 @@ export default function SettingsPage() {
 
           <button
             className="sidebar-btn-create"
-            onClick={() => window.navigateTo("/feed")}
+            onClick={() => setShowCreateModal(true)}
             aria-label="Create Post"
           >
             <Plus className="size-5" />
@@ -433,17 +457,23 @@ export default function SettingsPage() {
         </button>
         <button
           className="mobile-nav-btn-fab"
-          onClick={() => window.navigateTo("/feed")}
+          onClick={() => setShowCreateModal(true)}
           aria-label="Create Post"
         >
           <Plus className="size-6" />
         </button>
         <button
           className={`mobile-nav-btn ${activeNav === "Notifications" ? "active" : ""}`}
-          onClick={() => setActiveNav("Notifications")}
+          onClick={() => {
+            setActiveNav("Notifications");
+            window.navigateTo("/notifications");
+          }}
           aria-label="Notifications"
         >
-          <Bell className="size-5" />
+          <div className="relative">
+            <Bell className="size-5" />
+            {unreadNotifications > 0 && <span className="mobile-badge-bubble">{unreadNotifications}</span>}
+          </div>
         </button>
         <button
           className={`mobile-nav-btn ${activeNav === "Profile" ? "active" : ""}`}
@@ -456,6 +486,14 @@ export default function SettingsPage() {
           <User className="size-5" />
         </button>
       </nav>
+
+      {/* CREATE POST MODAL */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPostCreated={() => window.navigateTo("/feed")}
+        darkMode={darkMode}
+      />
     </div>
   );
 }

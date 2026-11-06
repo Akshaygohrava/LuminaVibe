@@ -13,13 +13,16 @@ import {
   Plus,
   X,
   Check,
-  CheckCheck
+  CheckCheck,
+  LogOut,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import "../assets/styles/Messages.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import CreatePostModal from "../components/CreatePostModal";
 
 export default function MessagesPage() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   // Authentication & User state
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -253,9 +256,20 @@ export default function MessagesPage() {
     <div className={`feed-page-container ${darkMode ? "dark" : "light-theme"}`}>
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => window.navigateTo("/feed")}
+          title="Go to Home"
+        >
           {mobileView === "chat" && (
-            <button className="mobile-back-btn" onClick={() => setMobileView("list")}>
+            <button
+              className="mobile-back-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMobileView("list");
+              }}
+              title="Back to conversation list"
+            >
               <ArrowLeft className="size-5" />
             </button>
           )}
@@ -281,7 +295,11 @@ export default function MessagesPage() {
       <div className="feed-layout">
         {/* LEFT SIDEBAR */}
         <aside className="sidebar-left">
-          <div className="sidebar-logo flex items-center gap-2.5">
+          <div
+            className="sidebar-logo flex items-center gap-2.5 cursor-pointer"
+            onClick={() => window.navigateTo("/feed")}
+            title="Go to Home"
+          >
             <img src={logoIcon} alt="" className="size-8 rounded-lg object-cover" />
             <span>LuminaVibe<span className="sidebar-logo-dot">.</span></span>
           </div>
@@ -311,6 +329,38 @@ export default function MessagesPage() {
               </div>
             ))}
           </nav>
+
+          <button
+            className="sidebar-btn-create"
+            onClick={() => setShowCreateModal(true)}
+            aria-label="Create Post"
+          >
+            <Plus className="size-5" />
+            <span>Create Post</span>
+          </button>
+
+          <div className="sidebar-profile">
+            <img
+              src={currentUser?.profile_picture_url || currentUser?.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              alt="Profile avatar"
+              className="sidebar-avatar"
+            />
+            <div className="sidebar-profile-info">
+              <div className="sidebar-profile-name">{currentUser?.name || currentUser?.full_name || currentUser?.fullName || "Creator"}</div>
+              <div className="sidebar-profile-handle">@{currentUser?.username || "creator"}</div>
+            </div>
+            <button
+              className="sidebar-logout-btn"
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.navigateTo("/");
+              }}
+              title="Log Out"
+            >
+              <LogOut className="size-5" />
+            </button>
+          </div>
         </aside>
 
         {/* MESSAGES CORE VIEW */}
@@ -530,24 +580,65 @@ export default function MessagesPage() {
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <nav className="mobile-bottom-nav">
-        {[
-          { name: "Home", path: "/feed", icon: <Home className="size-6" /> },
-          { name: "Explore", path: "/explore", icon: <Compass className="size-6" /> },
-          { name: "Messages", path: "/messages", icon: <MessageSquare className="size-6" /> },
-          { name: "Profile", path: "/profile", icon: <User className="size-6" /> },
-        ].map(item => (
-          <button
-            key={item.name}
-            className={`mobile-nav-btn ${activeNav === item.name ? "active" : ""}`}
-            onClick={() => {
-              setActiveNav(item.name);
-              window.navigateTo(item.path);
-            }}
-          >
-            {item.icon}
-          </button>
-        ))}
+        <button
+          className={`mobile-nav-btn ${activeNav === "Home" ? "active" : ""}`}
+          onClick={() => {
+            setActiveNav("Home");
+            window.navigateTo("/feed");
+          }}
+          aria-label="Home"
+        >
+          <Home className="size-5" />
+        </button>
+        <button
+          className={`mobile-nav-btn ${activeNav === "Explore" ? "active" : ""}`}
+          onClick={() => {
+            setActiveNav("Explore");
+            window.navigateTo("/explore");
+          }}
+          aria-label="Explore"
+        >
+          <Compass className="size-5" />
+        </button>
+        <button
+          className="mobile-nav-btn-fab"
+          onClick={() => setShowCreateModal(true)}
+          aria-label="Create Post"
+        >
+          <Plus className="size-6" />
+        </button>
+        <button
+          className={`mobile-nav-btn ${activeNav === "Notifications" ? "active" : ""}`}
+          onClick={() => {
+            setActiveNav("Notifications");
+            window.navigateTo("/notifications");
+          }}
+          aria-label="Notifications"
+        >
+          <div className="relative">
+            <Bell className="size-5" />
+            {unreadNotifications > 0 && <span className="mobile-badge-bubble">{unreadNotifications}</span>}
+          </div>
+        </button>
+        <button
+          className={`mobile-nav-btn ${activeNav === "Profile" ? "active" : ""}`}
+          onClick={() => {
+            setActiveNav("Profile");
+            window.navigateTo("/profile");
+          }}
+          aria-label="Profile"
+        >
+          <User className="size-5" />
+        </button>
       </nav>
+
+      {/* CREATE POST MODAL */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPostCreated={() => window.navigateTo("/feed")}
+        darkMode={darkMode}
+      />
     </div>
   );
 }
