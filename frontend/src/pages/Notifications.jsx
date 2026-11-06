@@ -32,7 +32,12 @@ export default function NotificationsPage() {
     } catch (e) {
       console.error(e);
     }
-    return null;
+    return {
+      userId: 0,
+      username: "creator_prime",
+      fullName: "Creator Prime",
+      profilePictureUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+    };
   });
 
   const [activeNav, setActiveNav] = useState("Notifications");

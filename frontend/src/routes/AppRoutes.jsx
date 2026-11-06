@@ -1,116 +1,164 @@
-import { useState, useEffect } from 'react'
-import LandingPage from '../pages/LandingPage'
-import SignInPage from '../pages/SignIn'
-import SignUpPage from '../pages/SignUp'
-import FeedPage from '../pages/Feed'
-import ExplorePage from '../pages/Explore'
-import ProfilePage from '../pages/Profile'
-import SettingsPage from '../pages/Settings'
-import MessagesPage from '../pages/Messages'
-import NotificationsPage from '../pages/Notifications'
+import { useState, useEffect, useCallback } from 'react';
+import LandingPage from '../pages/LandingPage';
+import SignInPage from '../pages/SignIn';
+import SignUpPage from '../pages/SignUp';
+import FeedPage from '../pages/Feed';
+import ExplorePage from '../pages/Explore';
+import ProfilePage from '../pages/Profile';
+import SettingsPage from '../pages/Settings';
+import MessagesPage from '../pages/Messages';
+import NotificationsPage from '../pages/Notifications';
 
 export default function AppRoutes() {
-  const [path, setPath] = useState(window.location.pathname)
+  const [path, setPath] = useState(() => window.location.pathname);
 
-  useEffect(() => {
-    const handleLocationChange = () => {
-      setPath(window.location.pathname)
-    };
-
-    window.addEventListener('popstate', handleLocationChange)
-    window.addEventListener('navigate', handleLocationChange)
-
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange)
-      window.removeEventListener('navigate', handleLocationChange)
-    };
-  }, [])
-
-  // Programmatic navigate helper
-  const navigate = (to) => {
-    window.history.pushState({}, '', to)
-    window.dispatchEvent(new Event('navigate'))
+  // Normalize path: removes trailing slashes and handles casing
+  const normalizePath = (p) => {
+    if (!p) return '/';
+    const clean = p.split('?')[0].split('#')[0].replace(/\/+$/, '').toLowerCase();
+    return clean || '/';
   };
 
+  const handleLocationChange = useCallback(() => {
+    setPath(window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('navigate', handleLocationChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('navigate', handleLocationChange);
+    };
+  }, [handleLocationChange]);
+
+  // Programmatic navigate helper
+  const navigate = useCallback((to) => {
+    if (window.location.pathname !== to) {
+      window.history.pushState({}, '', to);
+    }
+    setPath(to);
+    window.dispatchEvent(new Event('navigate'));
+  }, []);
+
   // Attach navigation helper globally
-  window.navigateTo = navigate
+  window.navigateTo = navigate;
 
   // Simple auth check helper
   const isAuthenticated = () => {
-    return !!localStorage.getItem('token')
+    try {
+      const token = localStorage.getItem('token');
+      return !!token && token !== 'undefined' && token !== 'null' && token.trim().length > 0;
+    } catch (e) {
+      return false;
+    }
   };
 
-  if (path === '/feed') {
-    if (!isAuthenticated()) {
-      setTimeout(() => navigate('/'), 0)
-      return null
+  const currentPath = normalizePath(path);
+  const authed = isAuthenticated();
+
+  // Route matching with immediate rendering and safe background URL sync
+  if (currentPath === '/feed') {
+    if (!authed) {
+      if (window.location.pathname !== '/signin') {
+        window.history.replaceState({}, '', '/signin');
+      }
+      return <SignInPage />;
     }
-    return <FeedPage />
+    return <FeedPage />;
   }
 
-  if (path === '/explore') {
-    if (!isAuthenticated()) {
-      setTimeout(() => navigate('/'), 0)
-      return null
+  if (currentPath === '/explore') {
+    if (!authed) {
+      if (window.location.pathname !== '/signin') {
+        window.history.replaceState({}, '', '/signin');
+      }
+      return <SignInPage />;
     }
-    return <ExplorePage />
+    return <ExplorePage />;
   }
 
-  if (path === '/profile') {
-    if (!isAuthenticated()) {
-      setTimeout(() => navigate('/'), 0)
-      return null
+  if (currentPath === '/profile') {
+    if (!authed) {
+      if (window.location.pathname !== '/signin') {
+        window.history.replaceState({}, '', '/signin');
+      }
+      return <SignInPage />;
     }
-    return <ProfilePage />
+    return <ProfilePage />;
   }
 
-  if (path === '/settings') {
-    if (!isAuthenticated()) {
-      setTimeout(() => navigate('/'), 0)
-      return null
+  if (currentPath === '/settings') {
+    if (!authed) {
+      if (window.location.pathname !== '/signin') {
+        window.history.replaceState({}, '', '/signin');
+      }
+      return <SignInPage />;
     }
-    return <SettingsPage />
+    return <SettingsPage />;
   }
 
-  if (path === '/messages') {
-    if (!isAuthenticated()) {
-      setTimeout(() => navigate('/'), 0)
-      return null
+  if (currentPath === '/messages') {
+    if (!authed) {
+      if (window.location.pathname !== '/signin') {
+        window.history.replaceState({}, '', '/signin');
+      }
+      return <SignInPage />;
     }
-    return <MessagesPage />
+    return <MessagesPage />;
   }
 
-  if (path === '/notifications') {
-    if (!isAuthenticated()) {
-      setTimeout(() => navigate('/'), 0)
-      return null
+  if (currentPath === '/notifications') {
+    if (!authed) {
+      if (window.location.pathname !== '/signin') {
+        window.history.replaceState({}, '', '/signin');
+      }
+      return <SignInPage />;
     }
-    return <NotificationsPage />
+    return <NotificationsPage />;
   }
 
-  if (path === '/signin') {
-    if (isAuthenticated()) {
-      setTimeout(() => navigate('/feed'), 0)
-      return null
+  if (currentPath === '/signin') {
+    if (authed) {
+      if (window.location.pathname !== '/feed') {
+        window.history.replaceState({}, '', '/feed');
+      }
+      return <FeedPage />;
     }
-    return <SignInPage />
+    return <SignInPage />;
   }
 
-  if (path === '/signup') {
-    if (isAuthenticated()) {
-      setTimeout(() => navigate('/feed'), 0)
-      return null
+  if (currentPath === '/signup') {
+    if (authed) {
+      if (window.location.pathname !== '/feed') {
+        window.history.replaceState({}, '', '/feed');
+      }
+      return <FeedPage />;
     }
-    return <SignUpPage />
+    return <SignUpPage />;
   }
 
-  if (path === '/') {
-    if (isAuthenticated()) {
-      setTimeout(() => navigate('/feed'), 0)
-      return null
+  if (currentPath === '/') {
+    if (authed) {
+      if (window.location.pathname !== '/feed') {
+        window.history.replaceState({}, '', '/feed');
+      }
+      return <FeedPage />;
     }
-    return <LandingPage />
+    return <LandingPage />;
   }
 
-  return <LandingPage />
+  // Fallback for any other path:
+  if (authed) {
+    if (window.location.pathname !== '/feed') {
+      window.history.replaceState({}, '', '/feed');
+    }
+    return <FeedPage />;
+  }
+
+  if (window.location.pathname !== '/') {
+    window.history.replaceState({}, '', '/');
+  }
+  return <LandingPage />;
 }

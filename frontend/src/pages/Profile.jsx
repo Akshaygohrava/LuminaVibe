@@ -57,7 +57,7 @@ export default function ProfilePage() {
   const [activeNav, setActiveNav] = useState("Profile");
   const [activeTab, setActiveTab] = useState("About");
 
-  const [profileUser, setProfileUser] = useState(null);
+  const [profileUser, setProfileUser] = useState(() => currentUser);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") !== "light");
@@ -540,19 +540,12 @@ export default function ProfilePage() {
     <div className={`feed-page-container ${darkMode ? "profile-page-container-dark" : "profile-page-container light-theme"}`}>
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
-        <button className="cover-btn-pill" onClick={() => window.navigateTo("/feed")} aria-label="Go back">
+        <button className="cover-btn-pill" onClick={() => window.navigateTo("/feed")} aria-label="Go back" title="Back to Home">
           <ChevronLeft className="size-5" style={{ color: darkMode ? "#ffffff" : "#0f172a" }} />
         </button>
-        <div
-          className="flex items-center gap-1.5 cursor-pointer min-w-0"
-          onClick={() => window.navigateTo("/feed")}
-          title="Go to Home"
-        >
-          <img src={logoIcon} alt="" className="size-6 rounded-lg object-cover shrink-0" />
-          <span className="mobile-logo text-base sm:text-lg font-bold truncate max-w-[160px]" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
-            {profileUser?.username ? `@${profileUser.username}` : "Profile"}
-          </span>
-        </div>
+        <span className="mobile-logo text-base sm:text-lg font-bold truncate max-w-[200px]" style={{ color: darkMode ? "#f8fafc" : "#0f172a" }}>
+          {profileUser?.username ? `@${profileUser.username}` : "Profile"}
+        </span>
         <div className="mobile-header-actions">
           {isOwnProfile && (
             <button className="icon-badge-btn" onClick={() => window.navigateTo("/settings")} aria-label="Settings" title="Settings">
@@ -707,7 +700,7 @@ export default function ProfilePage() {
                       </button>
                       <button 
                         className="profile-btn-secondary" 
-                        onClick={() => window.navigateTo(`/messages?userId=${profileUser.userId}&username=${profileUser.username}&fullName=${encodeURIComponent(profileUser.fullName || profileUser.full_name || "")}&avatar=${encodeURIComponent(profileUser.profilePicture || profileUser.profile_picture_url || "")}`)}
+                        onClick={() => window.navigateTo(`/messages?userId=${profileUser?.userId || 0}&username=${profileUser?.username || ""}&fullName=${encodeURIComponent(profileUser?.fullName || profileUser?.full_name || "")}&avatar=${encodeURIComponent(profileUser?.profilePicture || profileUser?.profile_picture_url || "")}`)}
                       >
                         Message
                       </button>

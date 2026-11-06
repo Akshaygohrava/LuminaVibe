@@ -191,7 +191,7 @@ export default function ExplorePage() {
         const data = response.data;
         // Add follow toggle status property dynamically
         const processed = await Promise.all(data.map(async (u) => {
-          if (u.userId === currentUser.userId) {
+          if (u.userId === currentUser?.userId) {
             return { ...u, followStatus: "SELF" };
           }
           try {

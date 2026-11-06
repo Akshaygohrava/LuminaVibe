@@ -17,4 +17,21 @@ api.interceptors.request.use(
   }
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/' && currentPath !== '/signin' && currentPath !== '/signup') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (window.navigateTo) {
+          window.navigateTo('/signin');
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

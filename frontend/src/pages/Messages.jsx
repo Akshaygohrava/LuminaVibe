@@ -464,7 +464,7 @@ export default function MessagesPage() {
                       </div>
                     ) : (
                       chatMessages.map((msg) => {
-                        const isSentByMe = msg.senderId === currentUser.userId;
+                        const isSentByMe = msg.senderId === currentUser?.userId;
                         return (
                           <div 
                             key={msg.messageId} 
