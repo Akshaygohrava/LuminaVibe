@@ -221,8 +221,8 @@ export default function NotificationsPage() {
         {/* NOTIFICATIONS CENTER COLUMN */}
         <main className="notifications-main-column">
           <div className="notifications-card-panel">
-            <div className="notifications-header-simple" style={{ padding: "20px 24px", borderBottom: "1px solid var(--glass-border)" }}>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: darkMode ? "#ffffff" : "#0f172a" }}>Notifications</h2>
+            <div className="notifications-header-simple">
+              <h2 style={{ fontWeight: 700, margin: 0, color: darkMode ? "#ffffff" : "#0f172a" }}>Notifications</h2>
             </div>
 
             <div className="notifications-scroller">

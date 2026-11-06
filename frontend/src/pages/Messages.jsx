@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import api from "../services/api";
 import {
   Home,
@@ -94,7 +94,20 @@ export default function MessagesPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const hasCheckedUrlParams = useRef(false);
+
+  // Reliable scroll-to-bottom helper
+  const scrollToBottom = useCallback((behavior = "auto") => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+    if (messagesEndRef.current) {
+      try {
+        messagesEndRef.current.scrollIntoView({ behavior, block: "end" });
+      } catch (e) {}
+    }
+  }, []);
 
   // Auto-select chat based on query parameters (e.g. from profile redirect)
   useEffect(() => {
@@ -142,17 +155,25 @@ export default function MessagesPage() {
   // Poll messages history for active chat every 3 seconds
   useEffect(() => {
     if (!activeChat) return;
-    loadChatHistory(activeChat.otherUserId);
+    loadChatHistory(activeChat.otherUserId, true);
     const interval = setInterval(() => {
       loadChatHistory(activeChat.otherUserId, true); // silent background load
     }, 3000);
     return () => clearInterval(interval);
-  }, [activeChat]);
+  }, [activeChat?.otherUserId]);
 
-  // Scroll to bottom when messages update
+  // Automatically scroll to bottom whenever messages finish loading or update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+    if (!isLoadingHistory && chatMessages.length > 0) {
+      scrollToBottom("auto");
+      const t1 = setTimeout(() => scrollToBottom("auto"), 50);
+      const t2 = setTimeout(() => scrollToBottom("auto"), 180);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [chatMessages, isLoadingHistory, activeChat?.otherUserId, mobileView, scrollToBottom]);
 
   const loadConversations = async () => {
     try {
@@ -174,7 +195,10 @@ export default function MessagesPage() {
     } catch (err) {
       console.error("Error loading chat history:", err);
     } finally {
-      if (!silent) setIsLoadingHistory(false);
+      if (!silent) {
+        setIsLoadingHistory(false);
+        setTimeout(() => scrollToBottom("auto"), 50);
+      }
     }
   };
 
@@ -193,6 +217,7 @@ export default function MessagesPage() {
 
       const newMsg = res.data;
       setChatMessages(prev => [...prev, newMsg]);
+      setTimeout(() => scrollToBottom("smooth"), 50);
       loadConversations();
     } catch (err) {
       console.error("Error sending message:", err);
@@ -228,6 +253,7 @@ export default function MessagesPage() {
     setShowNewChatModal(false);
     setMobileView("chat");
     loadChatHistory(user.userId);
+    setTimeout(() => scrollToBottom("auto"), 80);
   };
 
   const selectConversation = (chat) => {
@@ -235,6 +261,7 @@ export default function MessagesPage() {
     setChatMessages([]);
     setMobileView("chat");
     loadChatHistory(chat.otherUserId);
+    setTimeout(() => scrollToBottom("auto"), 80);
   };
 
   const formatMessageTime = (timeStr) => {
@@ -256,28 +283,42 @@ export default function MessagesPage() {
     <div className={`feed-page-container ${darkMode ? "dark" : "light-theme"}`}>
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
-        <div
-          className="flex items-center gap-2 cursor-pointer"
-          onClick={() => window.navigateTo("/feed")}
-          title="Go to Home"
-        >
-          {mobileView === "chat" && (
+        {mobileView === "chat" && activeChat ? (
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
-              className="mobile-back-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMobileView("list");
-              }}
-              title="Back to conversation list"
+              className="cover-btn-pill"
+              onClick={() => setMobileView("list")}
+              title="Back to conversations"
+              aria-label="Back to conversations"
             >
-              <ArrowLeft className="size-5" />
+              <ArrowLeft className="size-5" style={{ color: darkMode ? "#ffffff" : "#0f172a" }} />
             </button>
-          )}
-          <img src={logoIcon} alt="" className="size-7 rounded-lg object-cover" />
-          <span className="mobile-logo">
-            LuminaVibe<span className="sidebar-logo-dot">.</span>
-          </span>
-        </div>
+            <img
+              src={activeChat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              alt=""
+              className="size-8 rounded-full object-cover border border-white/10 shrink-0"
+            />
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-semibold truncate leading-tight" style={{ color: darkMode ? "#ffffff" : "#0f172a" }}>
+                {activeChat.otherFullName || activeChat.otherUsername}
+              </span>
+              <span className="text-[11px] truncate leading-tight" style={{ color: darkMode ? "rgba(255,255,255,0.45)" : "#64748b" }}>
+                @{activeChat.otherUsername}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => window.navigateTo("/feed")}
+            title="Go to Home"
+          >
+            <img src={logoIcon} alt="" className="size-7 rounded-lg object-cover" />
+            <span className="mobile-logo">
+              LuminaVibe<span className="sidebar-logo-dot">.</span>
+            </span>
+          </div>
+        )}
         {mobileView === "list" && (
           <div className="mobile-header-actions">
             <button className="icon-badge-btn" aria-label="Notifications" onClick={() => window.navigateTo("/notifications")}>
@@ -428,13 +469,8 @@ export default function MessagesPage() {
             <div className={`chat-pane ${mobileView === "list" ? "mobile-hidden" : ""}`}>
               {activeChat ? (
                 <>
-                  {/* Chat header */}
-                  <div className="chat-header">
-                    {mobileView === "chat" && (
-                      <button className="chat-back-arrow" onClick={() => setMobileView("list")}>
-                        <ArrowLeft className="size-5" />
-                      </button>
-                    )}
+                  {/* Desktop Chat header */}
+                  <div className="chat-header hidden md:flex">
                     <img 
                       src={activeChat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"} 
                       alt="" 
@@ -447,7 +483,7 @@ export default function MessagesPage() {
                   </div>
 
                   {/* Messages history scroller */}
-                  <div className="messages-history">
+                  <div className="messages-history" ref={messagesContainerRef}>
                     {isLoadingHistory ? (
                       <div className="loading-spinner-wrapper">
                         <div className="spinner"></div>
@@ -455,7 +491,7 @@ export default function MessagesPage() {
                     ) : chatMessages.length === 0 ? (
                       <div className="empty-chat-welcome">
                         <img 
-                          src={activeChat.otherProfilePictureUrl} 
+                          src={activeChat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"} 
                           alt="" 
                           className="welcome-avatar" 
                         />
@@ -463,33 +499,36 @@ export default function MessagesPage() {
                         <p>Direct messages between you and @{activeChat.otherUsername} are secure.</p>
                       </div>
                     ) : (
-                      chatMessages.map((msg) => {
-                        const isSentByMe = msg.senderId === currentUser?.userId;
-                        return (
-                          <div 
-                            key={msg.messageId} 
-                            className={`message-bubble-row ${isSentByMe ? "sent" : "received"}`}
-                          >
-                            <div className="bubble-wrapper">
-                              <div className="bubble-content">
-                                <p>{msg.content}</p>
-                              </div>
-                              <div className="bubble-meta">
-                                <span className="bubble-time">{formatMessageTime(msg.createdAt)}</span>
-                                {isSentByMe && (
-                                  <span className="receipt-icon">
-                                    {msg.isRead ? (
-                                      <CheckCheck className="size-3 text-lime-400" />
-                                    ) : (
-                                      <Check className="size-3 text-slate-400" />
-                                    )}
-                                  </span>
-                                )}
+                      <>
+                        <div className="messages-spacer" />
+                        {chatMessages.map((msg) => {
+                          const isSentByMe = msg.senderId === currentUser?.userId;
+                          return (
+                            <div 
+                              key={msg.messageId} 
+                              className={`message-bubble-row ${isSentByMe ? "sent" : "received"}`}
+                            >
+                              <div className="bubble-wrapper">
+                                <div className="bubble-content">
+                                  <p>{msg.content}</p>
+                                </div>
+                                <div className="bubble-meta">
+                                  <span className="bubble-time">{formatMessageTime(msg.createdAt)}</span>
+                                  {isSentByMe && (
+                                    <span className="receipt-icon">
+                                      {msg.isRead ? (
+                                        <CheckCheck className="size-3 text-lime-400" />
+                                      ) : (
+                                        <Check className="size-3 text-slate-400" />
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      </>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
