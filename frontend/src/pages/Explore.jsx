@@ -253,9 +253,12 @@ export default function ExplorePage() {
     <div className={`feed-page-container explore-page-container ${darkMode ? "dark" : "light-theme"}`}>
       {/* MOBILE TOP HEADER */}
       <header className="mobile-top-header" style={{ borderBottom: darkMode ? "1px solid rgba(255,255,255,0.03)" : "1px solid rgba(0,0,0,0.05)" }}>
-        <span className="mobile-logo">
-          LuminaVibe<span className="sidebar-logo-dot">.</span>
-        </span>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.navigateTo("/feed")}>
+          <img src={logoIcon} alt="" className="size-7 rounded-lg object-cover" />
+          <span className="mobile-logo">
+            LuminaVibe<span className="sidebar-logo-dot">.</span>
+          </span>
+        </div>
         <div className="mobile-header-actions">
           <button className="icon-badge-btn" aria-label="Notifications" onClick={() => window.navigateTo("/notifications")}>
             <Bell className="size-5" />
@@ -561,6 +564,13 @@ export default function ExplorePage() {
           <div className="lightbox-modal-content" onClick={(e) => e.stopPropagation()}>
             {/* Expanded Media Image */}
             <div className="lightbox-image-panel">
+              <button
+                className="lightbox-mobile-close-btn"
+                onClick={() => setSelectedPost(null)}
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
               <img
                 src={selectedPost.imageUrl}
                 alt={selectedPost.title}

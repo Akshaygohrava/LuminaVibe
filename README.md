@@ -80,7 +80,7 @@ Engineered with a **Spring Boot** backend and a reactive **Vite + React** fronte
 | Resource | Link |
 | :--- | :--- |
 | **🌐 Live Application** | [luminavibe-two.vercel.app](https://luminavibe-two.vercel.app/) |
-| **📡 Backend API** | [api.luminavibe-backend.onrender.com](https://luminavibe-backend.onrender.com) |
+| **📡 Backend API** | [luminavibe-backend.onrender.com](https://luminavibe-backend.onrender.com/) |
 | **📚 API Documentation** | Swagger UI (e.g. `/swagger-ui/index.html`) |
 
 ---
