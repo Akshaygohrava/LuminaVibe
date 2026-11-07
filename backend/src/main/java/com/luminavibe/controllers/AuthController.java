@@ -30,6 +30,9 @@ public class AuthController {
     @Autowired
     private ModelMapper modelMapper;
 
+    @Autowired
+    private com.luminavibe.services.BaseUrlService baseUrlService;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
@@ -45,6 +48,7 @@ public class AuthController {
 
             UserDto dto = modelMapper.map(user, UserDto.class);
             dto.setUsername(user.getActualUsername());
+            dto.setProfilePictureUrl(baseUrlService.fixUrl(dto.getProfilePictureUrl()));
 
             LoginResponse response = new LoginResponse(token, dto);
 

@@ -29,6 +29,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Profile.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
+import { formatMediaUrl } from "../utils/mediaUrl";
 
 export default function ProfilePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -39,7 +40,10 @@ export default function ProfilePage() {
       if (userStr && userStr !== "undefined") {
         const parsed = JSON.parse(userStr);
         if (parsed && parsed.username) {
-          return parsed;
+          return {
+            ...parsed,
+            profile_picture_url: formatMediaUrl(parsed.profile_picture_url || parsed.profilePictureUrl || "", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
+          };
         }
       }
     } catch (e) {
@@ -153,7 +157,7 @@ export default function ProfilePage() {
       const normalized = data.map((p) => {
         const mappedMedia = (p.media_list || []).map((m) => ({
           mediaId: m.media_id || m.mediaId,
-          mediaUrl: m.media_url || m.mediaUrl,
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
           mediaType: m.media_type || m.mediaType || "image/jpeg"
         }));
         return {
@@ -239,8 +243,8 @@ export default function ProfilePage() {
             full_name: data.full_name || data.fullName,
             fullName: data.full_name || data.fullName,
             bio: data.bio || "",
-            profile_picture_url: data.profile_picture_url || data.profilePictureUrl,
-            profilePicture: data.profile_picture_url || data.profilePictureUrl,
+            profile_picture_url: formatMediaUrl(data.profile_picture_url || data.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
+            profilePicture: formatMediaUrl(data.profile_picture_url || data.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
             isPrivate: data.private ?? data.isPrivate ?? false,
           };
           setProfileUser(normUser);
@@ -278,7 +282,7 @@ export default function ProfilePage() {
       const normalized = data.map((p) => {
         const mappedMedia = (p.media_list || []).map((m) => ({
           mediaId: m.media_id || m.mediaId,
-          mediaUrl: m.media_url || m.mediaUrl,
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
           mediaType: m.media_type || m.mediaType || "image/jpeg"
         }));
         return {
@@ -403,7 +407,7 @@ export default function ProfilePage() {
 
     try {
       const response = await api.post("/users/upload-avatar", formData);
-      setEditAvatarUrl(response.data.url);
+      setEditAvatarUrl(formatMediaUrl(response.data.url));
     } catch (err) {
       setUpdateError(err.message || "Failed to upload profile picture.");
     } finally {
@@ -423,8 +427,8 @@ export default function ProfilePage() {
       full_name: editName.trim(), // support json mapping
       fullName: editName.trim(), // DTO field name compatibility
       bio: editBio.trim(),
-      profile_picture_url: editAvatarUrl.trim(), // support json mapping
-      profilePictureUrl: editAvatarUrl.trim(), // DTO field compatibility
+      profile_picture_url: formatMediaUrl(editAvatarUrl.trim()), // support json mapping
+      profilePictureUrl: formatMediaUrl(editAvatarUrl.trim()), // DTO field compatibility
     };
 
     try {
@@ -437,8 +441,8 @@ export default function ProfilePage() {
         full_name: updatedUser.full_name || updatedUser.fullName,
         fullName: updatedUser.full_name || updatedUser.fullName,
         bio: updatedUser.bio,
-        profile_picture_url: updatedUser.profile_picture_url || updatedUser.profilePictureUrl,
-        profilePictureUrl: updatedUser.profile_picture_url || updatedUser.profilePictureUrl,
+        profile_picture_url: formatMediaUrl(updatedUser.profile_picture_url || updatedUser.profilePictureUrl),
+        profilePictureUrl: formatMediaUrl(updatedUser.profile_picture_url || updatedUser.profilePictureUrl),
       };
 
       localStorage.setItem("user", JSON.stringify(storageUser));
@@ -663,7 +667,7 @@ export default function ProfilePage() {
                 {/* Avatar overlapping */}
                 <div className="profile-avatar-container">
                   <img
-                    src={profileUser?.profile_picture_url || profileUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+                    src={formatMediaUrl(profileUser?.profile_picture_url || profileUser?.profile_picture, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
                     alt=""
                     className="profile-avatar-img"
                   />
@@ -1039,7 +1043,7 @@ export default function ProfilePage() {
               {/* Avatar Upload Container */}
               <div className="avatar-upload-row">
                 <img
-                  src={editAvatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+                  src={formatMediaUrl(editAvatarUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
                   alt=""
                   className="avatar-preview-circle"
                 />
@@ -1267,7 +1271,7 @@ export default function ProfilePage() {
                 <div className="lightbox-creator-row">
                   <div className="lightbox-creator-left">
                     <img
-                      src={profileUser?.profile_picture_url || profileUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"}
+                      src={formatMediaUrl(profileUser?.profile_picture_url || profileUser?.profile_picture, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop")}
                       alt=""
                       className="lightbox-creator-avatar"
                     />

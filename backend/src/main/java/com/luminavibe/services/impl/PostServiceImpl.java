@@ -50,6 +50,9 @@ public class PostServiceImpl implements PostService {
     private com.luminavibe.repositories.BookmarkRepository bookmarkRepository;
 
     @Autowired
+    private com.luminavibe.services.BaseUrlService baseUrlService;
+
+    @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @jakarta.persistence.PersistenceContext
@@ -87,7 +90,7 @@ public class PostServiceImpl implements PostService {
                     File destination = new File(uploadDir.getAbsolutePath() + File.separator + newFileName);
                     Files.copy(file.getInputStream(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-                    String fileUrl = "http://localhost:8080/uploads/posts/" + newFileName;
+                    String fileUrl = baseUrlService.getBaseUrl() + "/uploads/posts/" + newFileName;
                     String contentType = file.getContentType();
                     if (contentType == null) {
                         contentType = "image/jpeg"; // default fallback
@@ -196,8 +199,17 @@ public class PostServiceImpl implements PostService {
     public PostDto convertToDto(Post post) {
         if (post == null) return null;
         PostDto dto = modelMapper.map(post, PostDto.class);
-        if (dto.getUser() != null && post.getUser() != null) {
-            dto.getUser().setUsername(post.getUser().getActualUsername());
+        if (dto.getUser() != null) {
+            if (post.getUser() != null) {
+                dto.getUser().setUsername(post.getUser().getActualUsername());
+            }
+            dto.getUser().setProfilePictureUrl(baseUrlService.fixUrl(dto.getUser().getProfilePictureUrl()));
+        }
+
+        if (dto.getMediaList() != null) {
+            for (com.luminavibe.dtos.PostMediaDto m : dto.getMediaList()) {
+                m.setMediaUrl(baseUrlService.fixUrl(m.getMediaUrl()));
+            }
         }
 
         // Populate likes count
@@ -235,7 +247,7 @@ public class PostServiceImpl implements PostService {
         dto.setPostId(comment.getPost().getPostId());
         dto.setUserId(comment.getUser().getUserId());
         dto.setUsername(comment.getUser().getActualUsername());
-        dto.setUserAvatar(comment.getUser().getProfilePictureUrl());
+        dto.setUserAvatar(baseUrlService.fixUrl(comment.getUser().getProfilePictureUrl()));
         dto.setParentCommentId(comment.getParentComment() != null ? comment.getParentComment().getCommentId() : null);
         dto.setContent(comment.getContent());
         dto.setCreatedAt(comment.getCreatedAt());

@@ -20,6 +20,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private com.luminavibe.services.BaseUrlService baseUrlService;
+
     @PostMapping
     public ResponseEntity<UserDto> addUser(@Valid @RequestBody UserDto userDto) {
         return new ResponseEntity<UserDto>(userService.register(userDto), HttpStatus.CREATED);
@@ -61,7 +64,7 @@ public class UserController {
             File destinationFile = new File(uploadDir.getAbsolutePath() + File.separator + newFileName);
             file.transferTo(destinationFile);
 
-            String fileUrl = "http://localhost:8080/uploads/" + newFileName;
+            String fileUrl = baseUrlService.getBaseUrl() + "/uploads/" + newFileName;
             return ResponseEntity.ok(Map.of("url", fileUrl));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

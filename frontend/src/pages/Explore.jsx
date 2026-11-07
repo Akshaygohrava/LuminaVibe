@@ -23,6 +23,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Explore.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
+import { formatMediaUrl } from "../utils/mediaUrl";
 
 export default function ExplorePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,7 +34,10 @@ export default function ExplorePage() {
       if (userStr && userStr !== "undefined") {
         const parsed = JSON.parse(userStr);
         if (parsed && parsed.username) {
-          return parsed;
+          return {
+            ...parsed,
+            profile_picture_url: formatMediaUrl(parsed.profile_picture_url || parsed.profilePictureUrl || "", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
+          };
         }
       }
     } catch (e) {
@@ -322,7 +326,7 @@ export default function ExplorePage() {
 
           <div className="sidebar-profile">
             <img
-              src={currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              src={formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profile_picture || currentUser?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
               alt="Profile avatar"
               className="sidebar-avatar"
             />
@@ -387,7 +391,7 @@ export default function ExplorePage() {
                         onClick={() => window.navigateTo(`/profile?username=${user.username}`)}
                       >
                         <img
-                          src={user.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"}
+                          src={formatMediaUrl(user.profile_picture_url || user.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop")}
                           alt=""
                           className="search-user-avatar"
                         />

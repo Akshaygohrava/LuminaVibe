@@ -6,6 +6,7 @@ import authSide from "../assets/images/signin-sideimage.png";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
 import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import { formatMediaUrl } from "../utils/mediaUrl";
 
 const inputBase =
   "peer w-full rounded-2xl border border-border bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-foreground backdrop-blur-md outline-none transition-all duration-300 placeholder:text-muted-foreground/60 hover:border-primary/40 hover:bg-white/[0.07] focus:border-primary/70 focus:bg-white/[0.09] focus:shadow-[0_0_0_4px_oklch(0.7_0.19_40/0.14),0_10px_30px_-14px_oklch(0.7_0.19_40/0.6)]";
@@ -93,7 +94,12 @@ export default function SignInPage() {
       const response = await api.post("/auth/login", data);
       const resData = response.data;
       localStorage.setItem("token", resData.token);
-      localStorage.setItem("user", JSON.stringify(resData.userDto || resData.user));
+      const userData = resData.userDto || resData.user;
+      if (userData) {
+        userData.profile_picture_url = formatMediaUrl(userData.profile_picture_url || userData.profilePictureUrl || "", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop");
+        userData.profilePictureUrl = userData.profile_picture_url;
+      }
+      localStorage.setItem("user", JSON.stringify(userData));
 
       setDone("Successfully signed in!");
       setTimeout(() => {

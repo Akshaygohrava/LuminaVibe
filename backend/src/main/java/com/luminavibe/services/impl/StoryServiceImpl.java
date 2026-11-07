@@ -37,6 +37,9 @@ public class StoryServiceImpl implements StoryService {
     @Autowired
     private FollowRepository followRepository;
 
+    @Autowired
+    private com.luminavibe.services.BaseUrlService baseUrlService;
+
     @Override
     public StoryDto createStory(Integer userId, MultipartFile[] files) {
         User user = userRepository.findById(userId)
@@ -70,7 +73,7 @@ public class StoryServiceImpl implements StoryService {
                 File destination = new File(uploadDir.getAbsolutePath() + File.separator + newFileName);
                 Files.copy(file.getInputStream(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-                String fileUrl = "http://localhost:8080/uploads/stories/" + newFileName;
+                String fileUrl = baseUrlService.getBaseUrl() + "/uploads/stories/" + newFileName;
                 String contentType = file.getContentType();
                 if (contentType == null) {
                     contentType = "image/jpeg";
@@ -130,7 +133,7 @@ public class StoryServiceImpl implements StoryService {
             dto.setUserId(creator.getUserId());
             dto.setUsername(creator.getActualUsername());
             dto.setFullName(creator.getFullName());
-            dto.setProfilePictureUrl(creator.getProfilePictureUrl());
+            dto.setProfilePictureUrl(baseUrlService.fixUrl(creator.getProfilePictureUrl()));
             dto.setCreatedAt(firstStory.getCreatedAt());
             dto.setExpiresAt(firstStory.getExpiresAt());
 
@@ -139,7 +142,7 @@ public class StoryServiceImpl implements StoryService {
                 for (StoryMedia sm : s.getMediaList()) {
                     StoryMediaDto smDto = new StoryMediaDto();
                     smDto.setMediaId(sm.getMediaId());
-                    smDto.setMediaUrl(sm.getMediaUrl());
+                    smDto.setMediaUrl(baseUrlService.fixUrl(sm.getMediaUrl()));
                     smDto.setMediaType(sm.getMediaType());
                     mediaDtos.add(smDto);
                 }
@@ -157,14 +160,14 @@ public class StoryServiceImpl implements StoryService {
         dto.setUserId(story.getUser().getUserId());
         dto.setUsername(story.getUser().getActualUsername());
         dto.setFullName(story.getUser().getFullName());
-        dto.setProfilePictureUrl(story.getUser().getProfilePictureUrl());
+        dto.setProfilePictureUrl(baseUrlService.fixUrl(story.getUser().getProfilePictureUrl()));
         dto.setCreatedAt(story.getCreatedAt());
         dto.setExpiresAt(story.getExpiresAt());
 
         List<StoryMediaDto> mediaDtos = story.getMediaList().stream().map(sm -> {
             StoryMediaDto smDto = new StoryMediaDto();
             smDto.setMediaId(sm.getMediaId());
-            smDto.setMediaUrl(sm.getMediaUrl());
+            smDto.setMediaUrl(baseUrlService.fixUrl(sm.getMediaUrl()));
             smDto.setMediaType(sm.getMediaType());
             return smDto;
         }).collect(Collectors.toList());

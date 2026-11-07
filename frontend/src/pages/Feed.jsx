@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import { formatMediaUrl } from "../utils/mediaUrl";
 
 export default function FeedPage() {
   // Authentication & User state
@@ -35,7 +36,10 @@ export default function FeedPage() {
       if (userStr && userStr !== "undefined") {
         const parsed = JSON.parse(userStr);
         if (parsed && parsed.username) {
-          return parsed;
+          return {
+            ...parsed,
+            profile_picture_url: formatMediaUrl(parsed.profile_picture_url || parsed.profilePictureUrl || "", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
+          };
         }
       }
     } catch (e) {
@@ -207,11 +211,11 @@ export default function FeedPage() {
           id: item.story_id,
           userId: item.user_id,
           username: item.username,
-          avatar: item.profile_picture_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+          avatar: formatMediaUrl(item.profile_picture_url, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
           isSelf: item.user_id === (currentUser?.userId || currentUser?.user_id),
           mediaList: (item.media_list || []).map(m => ({
             mediaId: m.media_id || m.mediaId,
-            mediaUrl: m.media_url || m.mediaUrl,
+            mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
             mediaType: m.media_type || m.mediaType || "image/jpeg"
           }))
         }));
@@ -222,7 +226,7 @@ export default function FeedPage() {
             id: 0,
             userId: currentUser?.userId || currentUser?.user_id,
             username: "Your story",
-            avatar: currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+            avatar: formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profile_picture, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
             isSelf: true,
             mediaList: []
           });
@@ -312,7 +316,7 @@ export default function FeedPage() {
         return {
           id: c.commentId,
           username: c.username,
-          avatar: c.userAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+          avatar: formatMediaUrl(c.userAvatar, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
           text: c.content,
           time: formatPostTime(c.createdAt),
           replies: (c.replies || []).map(r => normalizeComment(r))
@@ -324,13 +328,13 @@ export default function FeedPage() {
         user: {
           name: p.user?.full_name || p.user?.fullName || "Lumina Creator",
           username: p.user?.username || "creator",
-          avatar: p.user?.profile_picture_url || p.user?.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+          avatar: formatMediaUrl(p.user?.profile_picture_url || p.user?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
         },
         location: p.location || "",
         time: formatPostTime(p.created_at),
         mediaList: (p.media_list || []).map(m => ({
           mediaId: m.media_id || m.mediaId,
-          mediaUrl: m.media_url || m.mediaUrl,
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
           mediaType: m.media_type || m.mediaType || "image/jpeg"
         })),
         likesCount: p.likes_count || 0,
@@ -411,10 +415,11 @@ export default function FeedPage() {
       setShowCreateStoryModal(false);
       setStoryFiles([]);
       setStoryPreviews([]);
-      loadStories();
+      await loadStories();
     } catch (err) {
-      console.error(err);
-      alert("Failed to upload story");
+      console.error("Story upload error:", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to upload story";
+      alert("Failed to upload story: " + errMsg);
     } finally {
       setIsUploadingStory(false);
     }

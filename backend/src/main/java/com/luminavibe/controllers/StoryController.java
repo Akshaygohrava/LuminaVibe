@@ -23,11 +23,18 @@ public class StoryController {
     private StoryService storyService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<StoryDto> createStory(@RequestParam("files") MultipartFile[] files) {
+    public ResponseEntity<StoryDto> createStory(
+            @RequestParam(value = "files", required = false) MultipartFile[] files,
+            @RequestParam(value = "file", required = false) MultipartFile singleFile) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
 
-        StoryDto storyDto = storyService.createStory(user.getUserId(), files);
+        MultipartFile[] filesToUpload = files;
+        if ((filesToUpload == null || filesToUpload.length == 0) && singleFile != null) {
+            filesToUpload = new MultipartFile[]{ singleFile };
+        }
+
+        StoryDto storyDto = storyService.createStory(user.getUserId(), filesToUpload);
         return new ResponseEntity<>(storyDto, HttpStatus.CREATED);
     }
 

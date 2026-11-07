@@ -20,6 +20,7 @@ import signUpSide from "../assets/images/signup-sideimage.png";
 import laptopBg from "../assets/images/laptopdesign-signinup-bgimage.jpg";
 import mobileBg from "../assets/images/mobiledesign-signin-bgimage.jpg";
 import logoIcon from "../assets/icons/logo-icon.jpg";
+import { formatMediaUrl } from "../utils/mediaUrl";
 
 const inputBase =
   "peer w-full rounded-2xl border border-border bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-foreground backdrop-blur-md outline-none transition-all duration-300 placeholder:text-muted-foreground/60 hover:border-primary/40 hover:bg-white/[0.07] focus:border-primary/70 focus:bg-white/[0.09] focus:shadow-[0_0_0_4px_oklch(0.7_0.19_40/0.14),0_10px_30px_-14px_oklch(0.7_0.19_40/0.6)]";
@@ -122,7 +123,7 @@ export default function SignUpPage() {
     try {
       const response = await api.post("/users/upload-avatar", formData);
       const resData = response.data;
-      setValue("profile_picture_url", resData.url, { shouldValidate: true });
+      setValue("profile_picture_url", formatMediaUrl(resData.url), { shouldValidate: true });
     } catch (err) {
       let displayMessage = "Failed to upload image.";
       if (err.response) {
@@ -380,7 +381,7 @@ export default function SignUpPage() {
                   <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border bg-white/[0.08] overflow-hidden">
                     {profilePictureUrl ? (
                       <img
-                        src={profilePictureUrl}
+                        src={formatMediaUrl(profilePictureUrl)}
                         alt="Profile preview"
                         className="h-full w-full object-cover"
                       />

@@ -28,6 +28,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private com.luminavibe.services.BaseUrlService baseUrlService;
+
     @Override
     public UserDto register(UserDto userDto) {
         if (userRepository.existsByUsername(userDto.getUsername())) {
@@ -122,6 +125,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) return null;
         UserDto dto = modelMapper.map(user, UserDto.class);
         dto.setUsername(user.getActualUsername());
+        dto.setProfilePictureUrl(baseUrlService.fixUrl(dto.getProfilePictureUrl()));
         return dto;
     }
 
