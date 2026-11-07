@@ -566,15 +566,13 @@ export default function FeedPage() {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
 
     try {
-      await api.delete(`/posts/${postId}`);
-
-      // Close menu
       setActivePostMenuId(null);
+      await api.delete(`/posts/${postId}`);
 
       // Refresh posts
       await loadAllPosts();
     } catch (err) {
-      alert("Error deleting post: " + err.message);
+      alert("Error deleting post: " + (err.response?.data?.message || err.message));
     }
   };
 

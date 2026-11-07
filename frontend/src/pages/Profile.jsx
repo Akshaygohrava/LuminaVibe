@@ -23,6 +23,7 @@ import {
   Award,
   BarChart2,
   Globe,
+  Trash2,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import "../assets/styles/Profile.css";
@@ -300,6 +301,21 @@ export default function ProfilePage() {
       ]);
     } finally {
       setIsLoadingUserPosts(false);
+    }
+  };
+
+  const handleDeletePostFromProfile = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      await api.delete(`/posts/${postId}`);
+      setSelectedPost(null);
+      await loadUserPosts();
+      if (typeof loadProfileData === "function") {
+        await loadProfileData();
+      }
+    } catch (err) {
+      alert("Error deleting post: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -1260,9 +1276,21 @@ export default function ProfilePage() {
                       <div className="lightbox-creator-handle">@{profileUser?.username || "creator"}</div>
                     </div>
                   </div>
-                  <button className="lightbox-close-btn" onClick={() => setSelectedPost(null)}>
-                    <X className="size-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {profileUser && currentUser && (profileUser.userId === currentUser.userId || profileUser.username === currentUser.username) && (
+                      <button 
+                        className="lightbox-delete-btn p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+                        title="Delete Post"
+                        aria-label="Delete Post"
+                        onClick={() => handleDeletePostFromProfile(selectedPost.id)}
+                      >
+                        <Trash2 className="size-5" />
+                      </button>
+                    )}
+                    <button className="lightbox-close-btn" onClick={() => setSelectedPost(null)}>
+                      <X className="size-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="lightbox-caption-box">

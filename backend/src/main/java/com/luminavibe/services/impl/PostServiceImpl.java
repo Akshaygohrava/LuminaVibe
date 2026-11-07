@@ -49,6 +49,12 @@ public class PostServiceImpl implements PostService {
     @Autowired
     private com.luminavibe.repositories.BookmarkRepository bookmarkRepository;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Override
     public PostDto createPost(Integer userId, String content, String location, MultipartFile[] files) {
         User user = userRepository.findById(userId)
@@ -130,13 +136,60 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void deletePost(Integer userId, Integer postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
-        if (!post.getUser().getUserId().equals(userId)) {
+        if (post.getUser() == null || !post.getUser().getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to delete this post");
         }
-        postRepository.delete(post);
+
+        // 1. Delete physical media files from uploads directory (best effort)
+        try {
+            if (post.getMediaList() != null) {
+                for (PostMedia media : post.getMediaList()) {
+                    if (media.getMediaUrl() != null && media.getMediaUrl().contains("/uploads/posts/")) {
+                        String filename = media.getMediaUrl().substring(media.getMediaUrl().lastIndexOf("/") + 1);
+                        File file = new File("uploads/posts/" + filename);
+                        if (file.exists()) {
+                            file.delete();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Ignore file deletion error so database transaction succeeds
+        }
+
+        // 2. Clear persistence context before executing bulk direct SQL to prevent stale entity conflicts
+        if (entityManager != null) {
+            entityManager.clear();
+        }
+
+        // 3. Delete bookmarks referencing this post
+        jdbcTemplate.update("DELETE FROM bookmarks WHERE post_id = ?", postId);
+
+        // 4. Delete notifications associated with this post or comments on this post
+        jdbcTemplate.update("DELETE FROM notifications WHERE (target_id = ? AND type IN ('LIKE', 'COMMENT')) " +
+                "OR (type IN ('LIKE', 'COMMENT') AND target_id IN (SELECT comment_id FROM comments WHERE post_id = ?))", postId, postId);
+
+        // 5. Delete likes on comments belonging to this post
+        jdbcTemplate.update("DELETE FROM likes WHERE target_type = 'comment' AND target_id IN (SELECT comment_id FROM comments WHERE post_id = ?)", postId);
+
+        // 6. Delete likes on the post itself
+        jdbcTemplate.update("DELETE FROM likes WHERE target_type = 'post' AND target_id = ?", postId);
+
+        // 7. Clear parent_comment_id to avoid self-referential foreign key constraint issues
+        jdbcTemplate.update("UPDATE comments SET parent_comment_id = NULL WHERE post_id = ?", postId);
+
+        // 8. Delete comments for this post
+        jdbcTemplate.update("DELETE FROM comments WHERE post_id = ?", postId);
+
+        // 9. Delete post media records
+        jdbcTemplate.update("DELETE FROM post_media WHERE post_id = ?", postId);
+
+        // 10. Delete the post record itself
+        jdbcTemplate.update("DELETE FROM posts WHERE post_id = ?", postId);
     }
 
     @Override
