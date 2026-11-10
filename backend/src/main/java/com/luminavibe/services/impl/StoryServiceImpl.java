@@ -40,6 +40,9 @@ public class StoryServiceImpl implements StoryService {
     @Autowired
     private com.luminavibe.services.BaseUrlService baseUrlService;
 
+    @Autowired
+    private com.luminavibe.services.FileStorageService fileStorageService;
+
     @Override
     public StoryDto createStory(Integer userId, MultipartFile[] files) {
         User user = userRepository.findById(userId)
@@ -56,24 +59,10 @@ public class StoryServiceImpl implements StoryService {
 
         List<StoryMedia> mediaList = new ArrayList<>();
 
-        File uploadDir = new File("uploads/stories");
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-
         for (MultipartFile file : files) {
             if (file.isEmpty()) continue;
             try {
-                String originalName = file.getOriginalFilename();
-                String extension = "";
-                if (originalName != null && originalName.contains(".")) {
-                    extension = originalName.substring(originalName.lastIndexOf("."));
-                }
-                String newFileName = UUID.randomUUID().toString() + extension;
-                File destination = new File(uploadDir.getAbsolutePath() + File.separator + newFileName);
-                Files.copy(file.getInputStream(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                String fileUrl = baseUrlService.getBaseUrl() + "/uploads/stories/" + newFileName;
+                String fileUrl = fileStorageService.storeFile(file, "stories");
                 String contentType = file.getContentType();
                 if (contentType == null) {
                     contentType = "image/jpeg";

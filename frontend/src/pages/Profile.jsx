@@ -29,7 +29,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Profile.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
-import { formatMediaUrl } from "../utils/mediaUrl";
+import { formatMediaUrl, handleImageError, handleAvatarError } from "../utils/mediaUrl";
 
 export default function ProfilePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -630,6 +630,7 @@ export default function ProfilePage() {
               src={currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
               alt="Profile avatar"
               className="sidebar-avatar"
+              onError={handleAvatarError}
             />
             <div className="sidebar-profile-info">
               <div className="sidebar-profile-name">{currentUser?.full_name || currentUser?.fullName || "Creator Profile"}</div>
@@ -670,6 +671,7 @@ export default function ProfilePage() {
                     src={formatMediaUrl(profileUser?.profile_picture_url || profileUser?.profile_picture, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
                     alt=""
                     className="profile-avatar-img"
+                    onError={handleAvatarError}
                   />
                 </div>
 
@@ -837,7 +839,7 @@ export default function ProfilePage() {
                       {post.mediaList && post.mediaList.length > 0 && post.mediaList[0].mediaType.startsWith("video/") ? (
                         <video src={post.mediaList[0].mediaUrl} className="w-full h-full object-cover" />
                       ) : (
-                        <img src={post.imageUrl} alt={post.title} loading="lazy" />
+                        <img src={post.imageUrl} alt={post.title} loading="lazy" onError={handleImageError} />
                       )}
                       <div className="profile-grid-hover">
                         <div className="flex items-center gap-1.5">
@@ -913,7 +915,7 @@ export default function ProfilePage() {
                       className="profile-grid-card"
                       onClick={() => setSelectedPost(post)}
                     >
-                      <img src={post.imageUrl} alt={post.title} loading="lazy" />
+                      <img src={post.imageUrl} alt={post.title} loading="lazy" onError={handleImageError} />
                       <div className="profile-grid-hover">
                         <div className="flex items-center gap-1.5">
                           <Heart className="size-4 fill-white" />
@@ -1046,6 +1048,7 @@ export default function ProfilePage() {
                   src={formatMediaUrl(editAvatarUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
                   alt=""
                   className="avatar-preview-circle"
+                  onError={handleAvatarError}
                 />
                 <div>
                   <button
@@ -1184,6 +1187,7 @@ export default function ProfilePage() {
                       src={selectedPost.mediaList[0].mediaUrl}
                       alt={selectedPost.title}
                       className="lightbox-expanded-img"
+                      onError={handleImageError}
                     />
                   )
                 ) : (
@@ -1216,6 +1220,7 @@ export default function ProfilePage() {
                               src={media.mediaUrl}
                               alt={`Post slide ${idx + 1}`}
                               className="lightbox-expanded-img object-contain"
+                              onError={handleImageError}
                             />
                           )}
                         </div>
@@ -1263,6 +1268,7 @@ export default function ProfilePage() {
                   src={selectedPost.imageUrl}
                   alt={selectedPost.title}
                   className="lightbox-expanded-img"
+                  onError={handleImageError}
                 />
               )}
             </div>
@@ -1274,6 +1280,7 @@ export default function ProfilePage() {
                       src={formatMediaUrl(profileUser?.profile_picture_url || profileUser?.profile_picture, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop")}
                       alt=""
                       className="lightbox-creator-avatar"
+                      onError={handleAvatarError}
                     />
                     <div>
                       <div className="lightbox-creator-name">{profileUser?.full_name || profileUser?.fullName || "Creator Profile"}</div>

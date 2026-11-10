@@ -23,6 +23,9 @@ public class UserController {
     @Autowired
     private com.luminavibe.services.BaseUrlService baseUrlService;
 
+    @Autowired
+    private com.luminavibe.services.FileStorageService fileStorageService;
+
     @PostMapping
     public ResponseEntity<UserDto> addUser(@Valid @RequestBody UserDto userDto) {
         return new ResponseEntity<UserDto>(userService.register(userDto), HttpStatus.CREATED);
@@ -49,22 +52,7 @@ public class UserController {
             return ResponseEntity.badRequest().body("File is empty");
         }
         try {
-            File uploadDir = new File("uploads");
-            if (!uploadDir.exists()) {
-                uploadDir.mkdirs();
-            }
-
-            String originalFileName = file.getOriginalFilename();
-            String fileExtension = "";
-            if (originalFileName != null && originalFileName.contains(".")) {
-                fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
-            }
-            String newFileName = UUID.randomUUID().toString() + fileExtension;
-
-            File destinationFile = new File(uploadDir.getAbsolutePath() + File.separator + newFileName);
-            file.transferTo(destinationFile);
-
-            String fileUrl = baseUrlService.getBaseUrl() + "/uploads/" + newFileName;
+            String fileUrl = fileStorageService.storeFile(file, "");
             return ResponseEntity.ok(Map.of("url", fileUrl));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

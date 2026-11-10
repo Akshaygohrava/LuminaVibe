@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
-import { formatMediaUrl } from "../utils/mediaUrl";
+import { formatMediaUrl, handleImageError, handleAvatarError } from "../utils/mediaUrl";
 
 export default function FeedPage() {
   // Authentication & User state
@@ -733,6 +733,7 @@ export default function FeedPage() {
               src={currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
               alt="Profile avatar"
               className="sidebar-avatar"
+              onError={handleAvatarError}
             />
             <div className="sidebar-profile-info">
               <div className="sidebar-profile-name">{currentUser?.full_name || currentUser?.name || "Creator Profile"}</div>
@@ -791,6 +792,7 @@ export default function FeedPage() {
                           src={story.avatar}
                           alt={story.username}
                           className="story-avatar-img"
+                          onError={handleAvatarError}
                         />
                         {story.isSelf && (
                           <div className="story-self-add" onClick={(e) => {
@@ -829,6 +831,7 @@ export default function FeedPage() {
                         src={post.user.avatar}
                         alt={`${post.user.name}'s avatar`}
                         className="user-avatar-circle"
+                        onError={handleAvatarError}
                       />
                       <div>
                         <div className="user-name-title">{post.user.name}</div>
@@ -883,6 +886,7 @@ export default function FeedPage() {
                             alt="Post media content"
                             className="post-media-img"
                             loading="lazy"
+                            onError={handleImageError}
                           />
                         )
                       ) : (
@@ -917,6 +921,7 @@ export default function FeedPage() {
                                     className="w-full h-full object-cover"
                                     style={{ maxHeight: "520px" }}
                                     loading="lazy"
+                                    onError={handleImageError}
                                   />
                                 )}
                               </div>
@@ -1441,6 +1446,7 @@ export default function FeedPage() {
                   alt=""
                   className="story-viewer-avatar"
                   style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1.5px solid var(--lime-neon)", objectFit: "cover" }}
+                  onError={handleAvatarError}
                 />
                 <div>
                   <div className="story-viewer-name" style={{ fontWeight: 600, fontSize: "0.85rem" }}>{selectedStory.username}</div>
@@ -1469,6 +1475,7 @@ export default function FeedPage() {
                     alt="Story content"
                     className="story-viewer-img"
                     style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
+                    onError={handleImageError}
                   />
                 )
               ) : (

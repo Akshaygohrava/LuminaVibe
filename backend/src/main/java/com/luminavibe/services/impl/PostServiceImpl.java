@@ -53,6 +53,9 @@ public class PostServiceImpl implements PostService {
     private com.luminavibe.services.BaseUrlService baseUrlService;
 
     @Autowired
+    private com.luminavibe.services.FileStorageService fileStorageService;
+
+    @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @jakarta.persistence.PersistenceContext
@@ -72,25 +75,10 @@ public class PostServiceImpl implements PostService {
         List<PostMedia> mediaList = new ArrayList<>();
 
         if (files != null && files.length > 0) {
-            // Ensure posts upload directory exists
-            File uploadDir = new File("uploads/posts");
-            if (!uploadDir.exists()) {
-                uploadDir.mkdirs();
-            }
-
             for (MultipartFile file : files) {
                 if (file.isEmpty()) continue;
                 try {
-                    String originalName = file.getOriginalFilename();
-                    String extension = "";
-                    if (originalName != null && originalName.contains(".")) {
-                        extension = originalName.substring(originalName.lastIndexOf("."));
-                    }
-                    String newFileName = UUID.randomUUID().toString() + extension;
-                    File destination = new File(uploadDir.getAbsolutePath() + File.separator + newFileName);
-                    Files.copy(file.getInputStream(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                    String fileUrl = baseUrlService.getBaseUrl() + "/uploads/posts/" + newFileName;
+                    String fileUrl = fileStorageService.storeFile(file, "posts");
                     String contentType = file.getContentType();
                     if (contentType == null) {
                         contentType = "image/jpeg"; // default fallback
@@ -147,16 +135,12 @@ public class PostServiceImpl implements PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to delete this post");
         }
 
-        // 1. Delete physical media files from uploads directory (best effort)
+        // 1. Delete media files from storage (persistent DB + disk cache)
         try {
             if (post.getMediaList() != null) {
                 for (PostMedia media : post.getMediaList()) {
-                    if (media.getMediaUrl() != null && media.getMediaUrl().contains("/uploads/posts/")) {
-                        String filename = media.getMediaUrl().substring(media.getMediaUrl().lastIndexOf("/") + 1);
-                        File file = new File("uploads/posts/" + filename);
-                        if (file.exists()) {
-                            file.delete();
-                        }
+                    if (media.getMediaUrl() != null) {
+                        fileStorageService.deleteFile(media.getMediaUrl());
                     }
                 }
             }

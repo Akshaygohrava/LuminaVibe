@@ -17,6 +17,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Notifications.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
+import { formatMediaUrl, handleAvatarError } from "../utils/mediaUrl";
 
 export default function NotificationsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -196,9 +197,10 @@ export default function NotificationsPage() {
 
           <div className="sidebar-profile">
             <img
-              src={currentUser?.profile_picture_url || currentUser?.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              src={formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
               alt="Profile avatar"
               className="sidebar-avatar"
+              onError={handleAvatarError}
             />
             <div className="sidebar-profile-info">
               <div className="sidebar-profile-name">{currentUser?.name || currentUser?.full_name || currentUser?.fullName || "Creator"}</div>
@@ -246,9 +248,10 @@ export default function NotificationsPage() {
                     >
                       <div className="notif-avatar-wrapper">
                         <img 
-                          src={notif.creatorProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop"} 
+                          src={formatMediaUrl(notif.creatorProfilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop")} 
                           alt="" 
                           className="notif-avatar" 
+                          onError={handleAvatarError}
                         />
                         <span className="notif-badge-icon">
                           {getNotificationIcon(notif.type)}

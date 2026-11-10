@@ -20,6 +20,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Messages.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
+import { formatMediaUrl, handleAvatarError } from "../utils/mediaUrl";
 
 export default function MessagesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -294,9 +295,10 @@ export default function MessagesPage() {
               <ArrowLeft className="size-5" style={{ color: darkMode ? "#ffffff" : "#0f172a" }} />
             </button>
             <img
-              src={activeChat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              src={formatMediaUrl(activeChat.otherProfilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
               alt=""
               className="size-8 rounded-full object-cover border border-white/10 shrink-0"
+              onError={handleAvatarError}
             />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-semibold truncate leading-tight" style={{ color: darkMode ? "#ffffff" : "#0f172a" }}>
@@ -382,9 +384,10 @@ export default function MessagesPage() {
 
           <div className="sidebar-profile">
             <img
-              src={currentUser?.profile_picture_url || currentUser?.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"}
+              src={formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
               alt="Profile avatar"
               className="sidebar-avatar"
+              onError={handleAvatarError}
             />
             <div className="sidebar-profile-info">
               <div className="sidebar-profile-name">{currentUser?.name || currentUser?.full_name || currentUser?.fullName || "Creator"}</div>
@@ -439,9 +442,10 @@ export default function MessagesPage() {
                       onClick={() => selectConversation(chat)}
                     >
                       <img 
-                        src={chat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"} 
+                        src={formatMediaUrl(chat.otherProfilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")} 
                         alt="" 
                         className="conversation-avatar" 
+                        onError={handleAvatarError}
                       />
                       <div className="conversation-info">
                         <div className="conversation-info-top">
@@ -472,9 +476,10 @@ export default function MessagesPage() {
                   {/* Desktop Chat header */}
                   <div className="chat-header hidden md:flex">
                     <img 
-                      src={activeChat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"} 
+                      src={formatMediaUrl(activeChat.otherProfilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")} 
                       alt="" 
                       className="chat-header-avatar" 
+                      onError={handleAvatarError}
                     />
                     <div className="chat-header-info">
                       <span className="chat-header-name">{activeChat.otherFullName || activeChat.otherUsername}</span>
@@ -491,9 +496,10 @@ export default function MessagesPage() {
                     ) : chatMessages.length === 0 ? (
                       <div className="empty-chat-welcome">
                         <img 
-                          src={activeChat.otherProfilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"} 
+                          src={formatMediaUrl(activeChat.otherProfilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")} 
                           alt="" 
                           className="welcome-avatar" 
+                          onError={handleAvatarError}
                         />
                         <h3>Send a message to start the vibe</h3>
                         <p>Direct messages between you and @{activeChat.otherUsername} are secure.</p>
@@ -601,9 +607,10 @@ export default function MessagesPage() {
                     onClick={() => selectUserToChat(user)}
                   >
                     <img 
-                      src={user.profilePictureUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"} 
+                      src={formatMediaUrl(user.profilePictureUrl || user.profile_picture_url, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")} 
                       alt="" 
                       className="picker-avatar" 
+                      onError={handleAvatarError}
                     />
                     <div className="picker-info">
                       <span className="picker-fullname">{user.fullName || user.username}</span>

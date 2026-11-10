@@ -23,7 +23,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Explore.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
-import { formatMediaUrl } from "../utils/mediaUrl";
+import { formatMediaUrl, handleImageError, handleAvatarError } from "../utils/mediaUrl";
 
 export default function ExplorePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -329,6 +329,7 @@ export default function ExplorePage() {
               src={formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profile_picture || currentUser?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
               alt="Profile avatar"
               className="sidebar-avatar"
+              onError={handleAvatarError}
             />
             <div className="sidebar-profile-info">
               <div className="sidebar-profile-name">{currentUser?.fullName || currentUser?.name || "Creator Profile"}</div>
@@ -394,6 +395,7 @@ export default function ExplorePage() {
                           src={formatMediaUrl(user.profile_picture_url || user.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop")}
                           alt=""
                           className="search-user-avatar"
+                          onError={handleAvatarError}
                         />
                         <div className="search-user-details">
                           <span className="search-user-fullname">{user.full_name || user.fullName || "Lumina Creator"}</span>
@@ -442,6 +444,7 @@ export default function ExplorePage() {
                   alt={post.title}
                   className="explore-grid-img"
                   loading="lazy"
+                  onError={handleImageError}
                 />
                 <div className="explore-grid-overlay">
                   <div className="explore-overlay-title">
@@ -495,6 +498,7 @@ export default function ExplorePage() {
                       src={sugg.avatar}
                       alt=""
                       className="suggestion-avatar"
+                      onError={handleAvatarError}
                     />
                     <div className="suggestion-info">
                       <span className="suggestion-name">{sugg.name}</span>
@@ -585,6 +589,7 @@ export default function ExplorePage() {
                 src={selectedPost.imageUrl}
                 alt={selectedPost.title}
                 className="lightbox-expanded-img"
+                onError={handleImageError}
               />
             </div>
 
@@ -597,6 +602,7 @@ export default function ExplorePage() {
                       src={selectedPost.creator.avatar}
                       alt=""
                       className="lightbox-creator-avatar"
+                      onError={handleAvatarError}
                     />
                     <div>
                       <div className="lightbox-creator-name">{selectedPost.creator.name}</div>

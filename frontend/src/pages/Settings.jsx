@@ -23,7 +23,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Settings.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
-import { formatMediaUrl } from "../utils/mediaUrl";
+import { formatMediaUrl, handleAvatarError } from "../utils/mediaUrl";
 
 export default function SettingsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -264,6 +264,7 @@ export default function SettingsPage() {
               src={formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profile_picture || currentUser?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop")}
               alt="Profile avatar"
               className="sidebar-avatar"
+              onError={handleAvatarError}
             />
             <div className="sidebar-profile-info">
               <div className="sidebar-profile-name">{currentUser?.full_name || currentUser?.fullName || "Creator Profile"}</div>
