@@ -335,7 +335,7 @@ export default function MessagesPage() {
         )}
       </header>
 
-      <div className="feed-layout">
+      <div className="feed-layout messages-feed-layout">
         {/* LEFT SIDEBAR */}
         <aside className="sidebar-left">
           <div

@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(HttpMethod.POST, "/users", "/users/upload-avatar", "/auth/login").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/health", "/api/health").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 );
