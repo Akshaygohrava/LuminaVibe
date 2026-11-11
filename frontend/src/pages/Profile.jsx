@@ -29,7 +29,7 @@ import "../assets/styles/Feed.css";
 import "../assets/styles/Profile.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
 import CreatePostModal from "../components/CreatePostModal";
-import { formatMediaUrl, handleImageError, handleAvatarError } from "../utils/mediaUrl";
+import { formatMediaUrl, handleImageError, handleAvatarError, DEFAULT_POST_IMAGE, getDeterministicDummyImage } from "../utils/mediaUrl";
 
 export default function ProfilePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -155,16 +155,22 @@ export default function ProfilePage() {
       const res = await api.get("/bookmarks");
       const data = res.data;
       const normalized = data.map((p) => {
+        const dummyImg = getDeterministicDummyImage(p.post_id);
         const mappedMedia = (p.media_list || []).map((m) => ({
           mediaId: m.media_id || m.mediaId,
-          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl, dummyImg),
           mediaType: m.media_type || m.mediaType || "image/jpeg"
         }));
+        const defaultImg = mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : dummyImg;
         return {
           id: p.post_id,
           title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
-          imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
-          mediaList: mappedMedia,
+          imageUrl: defaultImg,
+          mediaList: mappedMedia.length > 0 ? mappedMedia : [{
+            mediaId: `dummy-${p.post_id}`,
+            mediaUrl: defaultImg,
+            mediaType: "image/jpeg"
+          }],
           likes: p.likes_count || 0,
           comments: p.comments ? p.comments.length : 0,
           caption: p.content || "",
@@ -280,16 +286,22 @@ export default function ProfilePage() {
       const response = await api.get(`/posts/user/${profileUser.userId}`);
       const data = response.data;
       const normalized = data.map((p) => {
+        const dummyImg = getDeterministicDummyImage(p.post_id);
         const mappedMedia = (p.media_list || []).map((m) => ({
           mediaId: m.media_id || m.mediaId,
-          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl, dummyImg),
           mediaType: m.media_type || m.mediaType || "image/jpeg"
         }));
+        const defaultImg = mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : dummyImg;
         return {
           id: p.post_id,
           title: p.content ? (p.content.length > 20 ? p.content.substring(0, 20) + "..." : p.content) : "Post",
-          imageUrl: mappedMedia.length > 0 ? mappedMedia[0].mediaUrl : "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?w=800&auto=format&fit=crop",
-          mediaList: mappedMedia,
+          imageUrl: defaultImg,
+          mediaList: mappedMedia.length > 0 ? mappedMedia : [{
+            mediaId: `dummy-${p.post_id}`,
+            mediaUrl: defaultImg,
+            mediaType: "image/jpeg"
+          }],
           likes: Math.floor(Math.random() * 200) + 14,
           comments: 0,
           caption: p.content || "",

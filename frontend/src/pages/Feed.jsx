@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
-import { formatMediaUrl, handleImageError, handleAvatarError } from "../utils/mediaUrl";
+import { formatMediaUrl, handleImageError, handleAvatarError, DEFAULT_POST_IMAGE, getDeterministicDummyImage } from "../utils/mediaUrl";
 
 export default function FeedPage() {
   // Authentication & User state
@@ -323,27 +323,39 @@ export default function FeedPage() {
         };
       };
 
-      const normalized = data.map(p => ({
-        id: p.post_id,
-        user: {
-          name: p.user?.full_name || p.user?.fullName || "Lumina Creator",
-          username: p.user?.username || "creator",
-          avatar: formatMediaUrl(p.user?.profile_picture_url || p.user?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
-        },
-        location: p.location || "",
-        time: formatPostTime(p.created_at),
-        mediaList: (p.media_list || []).map(m => ({
+      const normalized = data.map(p => {
+        const dummyImg = getDeterministicDummyImage(p.post_id);
+        const mappedMedia = (p.media_list || []).map(m => ({
           mediaId: m.media_id || m.mediaId,
-          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl, dummyImg),
           mediaType: m.media_type || m.mediaType || "image/jpeg"
-        })),
-        likesCount: p.likes_count || 0,
-        isLiked: p.is_liked || false,
-        isBookmarked: p.is_bookmarked || false,
-        caption: p.content || "",
-        comments: (p.comments || []).map(c => normalizeComment(c)),
-        showComments: false
-      }));
+        }));
+
+        const finalMedia = mappedMedia.length > 0 ? mappedMedia : [{
+          mediaId: `dummy-${p.post_id}`,
+          mediaUrl: dummyImg,
+          mediaType: "image/jpeg"
+        }];
+
+        return {
+          id: p.post_id,
+          user: {
+            name: p.user?.full_name || p.user?.fullName || "Lumina Creator",
+            username: p.user?.username || "creator",
+            avatar: formatMediaUrl(p.user?.profile_picture_url || p.user?.profilePictureUrl, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
+          },
+          location: p.location || "",
+          time: formatPostTime(p.created_at),
+          mediaList: finalMedia,
+          imageUrl: finalMedia[0].mediaUrl,
+          likesCount: p.likes_count || 0,
+          isLiked: p.is_liked || false,
+          isBookmarked: p.is_bookmarked || false,
+          caption: p.content || "",
+          comments: (p.comments || []).map(c => normalizeComment(c)),
+          showComments: false
+        };
+      });
       setPosts(normalized);
     } catch (err) {
       console.error("Error loading posts:", err);
@@ -976,10 +988,11 @@ export default function FeedPage() {
                     ) : (
                       /* Fallback mock post image */
                       <img
-                        src={post.imageUrl}
+                        src={post.imageUrl || DEFAULT_POST_IMAGE}
                         alt="Post content"
                         className="post-media-img"
                         loading="lazy"
+                        onError={handleImageError}
                       />
                     )}
                   </div>

@@ -5,10 +5,24 @@ export const getBackendBaseUrl = () => {
 export const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop";
 export const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop";
 
-export const formatMediaUrl = (url, fallback = '') => {
+export const DUMMY_POST_IMAGES = [
+  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop"
+];
+
+export const getDeterministicDummyImage = (seed = 0) => {
+  const num = typeof seed === 'number' ? Math.abs(seed) : Math.abs(String(seed).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+  return DUMMY_POST_IMAGES[num % DUMMY_POST_IMAGES.length];
+};
+
+export const formatMediaUrl = (url, fallback = DEFAULT_POST_IMAGE) => {
   if (!url || typeof url !== 'string') return fallback;
   const trimmed = url.trim();
-  if (!trimmed) return fallback;
+  if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return fallback;
 
   // Upgrade http:// to https:// on production/HTTPS to prevent Mixed Content browser blocks on Vercel
   let processed = trimmed;

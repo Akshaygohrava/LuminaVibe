@@ -56,6 +56,16 @@ public class BaseUrlService {
 
             jdbcTemplate.update("UPDATE story_media SET media_url = REPLACE(media_url, 'http://localhost:8080', ?) WHERE media_url LIKE '%localhost:8080%'", base);
             jdbcTemplate.update("UPDATE story_media SET media_url = REPLACE(media_url, 'https://localhost:8080', ?) WHERE media_url LIKE '%localhost:8080%'", base);
+
+            // Populate fallback dummy images for any legacy posts/stories/users with missing media
+            jdbcTemplate.update("UPDATE post_media SET media_url = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop' WHERE media_url IS NULL OR TRIM(media_url) = ''");
+            jdbcTemplate.update("UPDATE story_media SET media_url = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop' WHERE media_url IS NULL OR TRIM(media_url) = ''");
+            jdbcTemplate.update("UPDATE users SET profile_picture_url = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop' WHERE profile_picture_url IS NULL OR TRIM(profile_picture_url) = ''");
+
+            // Attach fallback dummy media to any legacy posts that have no post_media rows
+            jdbcTemplate.update("INSERT INTO post_media (post_id, media_url, media_type) " +
+                    "SELECT post_id, 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop', 'image/jpeg' " +
+                    "FROM posts WHERE post_id NOT IN (SELECT DISTINCT post_id FROM post_media WHERE post_id IS NOT NULL)");
         } catch (Exception ignored) {
             // Table might not be ready or empty on initial boot
         }

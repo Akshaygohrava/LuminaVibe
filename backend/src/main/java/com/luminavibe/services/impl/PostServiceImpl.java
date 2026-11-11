@@ -31,6 +31,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Service
 public class PostServiceImpl implements PostService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PostServiceImpl.class);
+
+    private static final String DEFAULT_POST_DUMMY_IMAGE = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop";
+    private static final String DEFAULT_USER_AVATAR = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop";
+
     @Autowired
     private PostRepository postRepository;
 
@@ -76,11 +81,11 @@ public class PostServiceImpl implements PostService {
 
         if (files != null && files.length > 0) {
             for (MultipartFile file : files) {
-                if (file.isEmpty()) continue;
+                if (file == null || file.isEmpty()) continue;
                 try {
                     String fileUrl = fileStorageService.storeFile(file, "posts");
                     String contentType = file.getContentType();
-                    if (contentType == null) {
+                    if (contentType == null || contentType.isEmpty()) {
                         contentType = "image/jpeg"; // default fallback
                     }
 
@@ -90,7 +95,7 @@ public class PostServiceImpl implements PostService {
                     media.setMediaType(contentType);
                     mediaList.add(media);
                 } catch (Exception e) {
-                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save file: " + e.getMessage());
+                    logger.error("Error storing post media: {}", e.getMessage(), e);
                 }
             }
         }
@@ -187,12 +192,28 @@ public class PostServiceImpl implements PostService {
             if (post.getUser() != null) {
                 dto.getUser().setUsername(post.getUser().getActualUsername());
             }
-            dto.getUser().setProfilePictureUrl(baseUrlService.fixUrl(dto.getUser().getProfilePictureUrl()));
+            String avatar = baseUrlService.fixUrl(dto.getUser().getProfilePictureUrl());
+            if (avatar == null || avatar.trim().isEmpty()) {
+                avatar = DEFAULT_USER_AVATAR;
+            }
+            dto.getUser().setProfilePictureUrl(avatar);
         }
 
-        if (dto.getMediaList() != null) {
+        if (dto.getMediaList() == null || dto.getMediaList().isEmpty()) {
+            com.luminavibe.dtos.PostMediaDto dummyMedia = new com.luminavibe.dtos.PostMediaDto();
+            dummyMedia.setMediaId(-post.getPostId());
+            dummyMedia.setMediaType("image/jpeg");
+            dummyMedia.setMediaUrl(DEFAULT_POST_DUMMY_IMAGE);
+            List<com.luminavibe.dtos.PostMediaDto> list = new ArrayList<>();
+            list.add(dummyMedia);
+            dto.setMediaList(list);
+        } else {
             for (com.luminavibe.dtos.PostMediaDto m : dto.getMediaList()) {
-                m.setMediaUrl(baseUrlService.fixUrl(m.getMediaUrl()));
+                String fixed = baseUrlService.fixUrl(m.getMediaUrl());
+                if (fixed == null || fixed.trim().isEmpty()) {
+                    fixed = DEFAULT_POST_DUMMY_IMAGE;
+                }
+                m.setMediaUrl(fixed);
             }
         }
 

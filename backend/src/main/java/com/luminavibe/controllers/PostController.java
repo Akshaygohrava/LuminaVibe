@@ -25,12 +25,18 @@ public class PostController {
     public ResponseEntity<PostDto> createPost(
             @RequestParam("content") String content,
             @RequestParam(value = "location", required = false) String location,
-            @RequestParam("files") MultipartFile[] files) {
+            @RequestParam(value = "files", required = false) MultipartFile[] files,
+            @RequestParam(value = "file", required = false) MultipartFile singleFile) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
+
+        MultipartFile[] filesToUpload = files;
+        if ((filesToUpload == null || filesToUpload.length == 0) && singleFile != null) {
+            filesToUpload = new MultipartFile[]{ singleFile };
+        }
         
-        PostDto postDto = postService.createPost(user.getUserId(), content, location, files);
+        PostDto postDto = postService.createPost(user.getUserId(), content, location, filesToUpload);
         return new ResponseEntity<>(postDto, HttpStatus.CREATED);
     }
 

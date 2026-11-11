@@ -45,6 +45,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Autowired
     private BaseUrlService baseUrlService;
 
+    @Autowired(required = false)
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Value("${cloudinary.url:}")
     private String cloudinaryUrlConfig;
 
@@ -77,10 +80,26 @@ public class FileStorageServiceImpl implements FileStorageService {
             new File("uploads/posts").mkdirs();
             new File("uploads/stories").mkdirs();
         } catch (Exception ignored) {}
+
+        // Ensure media_files table exists in PostgreSQL
+        if (jdbcTemplate != null) {
+            try {
+                jdbcTemplate.execute(
+                    "CREATE TABLE IF NOT EXISTS media_files (" +
+                    "file_id BIGSERIAL PRIMARY KEY, " +
+                    "file_path VARCHAR(255) UNIQUE NOT NULL, " +
+                    "content_type VARCHAR(100) NOT NULL, " +
+                    "file_size BIGINT, " +
+                    "data BYTEA, " +
+                    "created_at TIMESTAMP NOT NULL DEFAULT NOW())"
+                );
+            } catch (Exception e) {
+                logger.warn("Could not ensure media_files table exists via JDBC: {}", e.getMessage());
+            }
+        }
     }
 
     @Override
-    @Transactional
     public String storeFile(MultipartFile file, String subfolder) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Cannot store an empty file");
@@ -144,13 +163,28 @@ public class FileStorageServiceImpl implements FileStorageService {
             logger.warn("Could not write to local disk cache: {}", e.getMessage());
         }
 
-        // Save to PostgreSQL persistent media_files table
-        MediaFile mediaFile = new MediaFile();
-        mediaFile.setFilePath(relativePath);
-        mediaFile.setContentType(contentType);
-        mediaFile.setFileSize((long) fileBytes.length);
-        mediaFile.setData(fileBytes);
-        mediaFileRepository.save(mediaFile);
+        // Save to PostgreSQL persistent media_files table (with resilient fallback)
+        try {
+            MediaFile mediaFile = new MediaFile();
+            mediaFile.setFilePath(relativePath);
+            mediaFile.setContentType(contentType);
+            mediaFile.setFileSize((long) fileBytes.length);
+            mediaFile.setData(fileBytes);
+            mediaFileRepository.save(mediaFile);
+        } catch (Exception e) {
+            logger.warn("JPA mediaFileRepository.save failed for {}, trying direct JDBC fallback: {}", relativePath, e.getMessage());
+            if (jdbcTemplate != null) {
+                try {
+                    jdbcTemplate.update(
+                        "INSERT INTO media_files (file_path, content_type, file_size, data, created_at) " +
+                        "VALUES (?, ?, ?, ?, NOW()) ON CONFLICT (file_path) DO UPDATE SET data = EXCLUDED.data, content_type = EXCLUDED.content_type, file_size = EXCLUDED.file_size",
+                        relativePath, contentType, (long) fileBytes.length, fileBytes
+                    );
+                } catch (Exception ex) {
+                    logger.error("Could not persist media file to database: {}", ex.getMessage());
+                }
+            }
+        }
 
         return baseUrlService.getBaseUrl() + "/uploads/" + relativePath;
     }
@@ -183,24 +217,51 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         // 2. If missing from disk cache (Render restarted/wiped the container), restore from persistent PostgreSQL database!
-        Optional<MediaFile> opt = mediaFileRepository.findByFilePath(cleanPath);
-        if (opt.isEmpty()) {
-            opt = mediaFileRepository.findByFilePath("uploads/" + cleanPath);
-        }
-        if (opt.isPresent()) {
-            MediaFile mf = opt.get();
-
-            // Re-cache to local disk so subsequent requests are fast
-            try {
-                if (diskFile.getParentFile() != null && !diskFile.getParentFile().exists()) {
-                    diskFile.getParentFile().mkdirs();
-                }
-                Files.write(diskFile.toPath(), mf.getData());
-            } catch (Exception e) {
-                logger.warn("Could not re-cache restored file to disk: {}", e.getMessage());
+        try {
+            Optional<MediaFile> opt = mediaFileRepository.findByFilePath(cleanPath);
+            if (opt.isEmpty()) {
+                opt = mediaFileRepository.findByFilePath("uploads/" + cleanPath);
             }
+            if (opt.isPresent()) {
+                MediaFile mf = opt.get();
 
-            return new StoredFile(cleanPath, mf.getContentType(), mf.getData());
+                // Re-cache to local disk so subsequent requests are fast
+                try {
+                    if (diskFile.getParentFile() != null && !diskFile.getParentFile().exists()) {
+                        diskFile.getParentFile().mkdirs();
+                    }
+                    Files.write(diskFile.toPath(), mf.getData());
+                } catch (Exception e) {
+                    logger.warn("Could not re-cache restored file to disk: {}", e.getMessage());
+                }
+
+                return new StoredFile(cleanPath, mf.getContentType(), mf.getData());
+            }
+        } catch (Exception e) {
+            logger.warn("JPA lookup failed for {}, attempting direct JDBC lookup: {}", cleanPath, e.getMessage());
+        }
+
+        // Direct JDBC fallback lookup
+        if (jdbcTemplate != null) {
+            try {
+                java.util.List<StoredFile> results = jdbcTemplate.query(
+                    "SELECT file_path, content_type, data FROM media_files WHERE file_path = ? OR file_path = ? LIMIT 1",
+                    (rs, rowNum) -> new StoredFile(rs.getString("file_path"), rs.getString("content_type"), rs.getBytes("data")),
+                    cleanPath, "uploads/" + cleanPath
+                );
+                if (!results.isEmpty()) {
+                    StoredFile sf = results.get(0);
+                    try {
+                        if (diskFile.getParentFile() != null && !diskFile.getParentFile().exists()) {
+                            diskFile.getParentFile().mkdirs();
+                        }
+                        Files.write(diskFile.toPath(), sf.getData());
+                    } catch (Exception ignored) {}
+                    return sf;
+                }
+            } catch (Exception ex) {
+                logger.warn("Direct JDBC lookup failed for {}: {}", cleanPath, ex.getMessage());
+            }
         }
 
         return null;
@@ -227,6 +288,12 @@ public class FileStorageServiceImpl implements FileStorageService {
             mediaFileRepository.deleteByFilePath("uploads/" + cleanPath);
         } catch (Exception e) {
             logger.warn("Could not delete media file record {}: {}", cleanPath, e.getMessage());
+        }
+
+        if (jdbcTemplate != null) {
+            try {
+                jdbcTemplate.update("DELETE FROM media_files WHERE file_path = ? OR file_path = ?", cleanPath, "uploads/" + cleanPath);
+            } catch (Exception ignored) {}
         }
 
         try {
