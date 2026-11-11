@@ -35,6 +35,15 @@ public class MediaController {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @GetMapping("/health")
+    public ResponseEntity<?> uploadsHealth() {
+        return ResponseEntity.ok(java.util.Map.of(
+            "status", "UP",
+            "service", "LuminaVibe Backend",
+            "timestamp", java.time.Instant.now().toString()
+        ));
+    }
+
     @GetMapping("/{filename:.+}")
     public ResponseEntity<?> getRootFile(@PathVariable("filename") String filename) {
         return serveFile(filename);
