@@ -23,7 +23,7 @@ public class PostMedia {
     @JsonIgnore
     private Post post;
 
-    @Column(name = "media_url", nullable = false, length = 255)
+    @Column(name = "media_url", nullable = false, columnDefinition = "TEXT")
     private String mediaUrl;
 
     @Column(name = "media_type", nullable = false, length = 50)

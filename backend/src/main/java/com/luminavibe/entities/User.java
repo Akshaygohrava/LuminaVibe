@@ -40,7 +40,7 @@ public class User implements UserDetails {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
-    @Column(name = "profile_picture_url", length = 255)
+    @Column(name = "profile_picture_url", columnDefinition = "TEXT")
     private String profilePictureUrl;
 
     @Column(name = "is_verified", nullable = false)

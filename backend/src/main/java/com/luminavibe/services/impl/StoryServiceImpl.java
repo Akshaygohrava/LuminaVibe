@@ -110,13 +110,30 @@ public class StoryServiceImpl implements StoryService {
         // Always include own stories
         creatorIds.add(userId);
 
-        // Fetch active stories
+        // Fetch active stories (own + followed)
         List<Story> activeStories = storyRepository.findByUserUserIdInAndExpiresAtAfterOrderByCreatedAtAsc(creatorIds, LocalDateTime.now());
 
-        // Group stories by creator
+        // Also include active community stories so the stories carousel is always rich and active
+        List<Story> allActive = storyRepository.findByExpiresAtAfterOrderByCreatedAtAsc(LocalDateTime.now());
+        Set<Integer> seenStoryIds = activeStories.stream().map(Story::getStoryId).collect(Collectors.toSet());
+        for (Story s : allActive) {
+            if (!seenStoryIds.contains(s.getStoryId())) {
+                activeStories.add(s);
+                seenStoryIds.add(s.getStoryId());
+            }
+        }
+
+        // Group stories by creator, ensuring own stories are strictly at the beginning
         Map<Integer, List<Story>> grouped = new LinkedHashMap<>();
         for (Story story : activeStories) {
-            grouped.computeIfAbsent(story.getUser().getUserId(), k -> new ArrayList<>()).add(story);
+            if (story.getUser().getUserId().equals(userId)) {
+                grouped.computeIfAbsent(userId, k -> new ArrayList<>()).add(story);
+            }
+        }
+        for (Story story : activeStories) {
+            if (!story.getUser().getUserId().equals(userId)) {
+                grouped.computeIfAbsent(story.getUser().getUserId(), k -> new ArrayList<>()).add(story);
+            }
         }
 
         List<StoryDto> result = new ArrayList<>();

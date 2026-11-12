@@ -109,6 +109,26 @@ public class PostServiceImpl implements PostService {
     @Override
     public List<PostDto> getAllPosts() {
         List<Post> posts = postRepository.findAllByOrderByCreatedAtDesc();
+
+        // If an authenticated user calls getAllPosts, ensure their own posts are strictly prioritized at the top
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            User currentUser = (User) auth.getPrincipal();
+            Integer currentUserId = currentUser.getUserId();
+            List<Post> ownPosts = new ArrayList<>();
+            List<Post> otherPosts = new ArrayList<>();
+            for (Post p : posts) {
+                if (p.getUser() != null && p.getUser().getUserId().equals(currentUserId)) {
+                    ownPosts.add(p);
+                } else {
+                    otherPosts.add(p);
+                }
+            }
+            List<Post> combined = new ArrayList<>(ownPosts);
+            combined.addAll(otherPosts);
+            return combined.stream().map(this::convertToDto).collect(Collectors.toList());
+        }
+
         return posts.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 

@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
-import { formatMediaUrl, handleImageError, handleAvatarError, DEFAULT_POST_IMAGE, getDeterministicDummyImage } from "../utils/mediaUrl";
+import { formatMediaUrl, handleImageError, handleAvatarError, DEFAULT_POST_IMAGE, DEFAULT_AVATAR, getDeterministicDummyImage } from "../utils/mediaUrl";
+import { getCuratedStories, getCuratedFeedPosts, DUMMY_USERS } from "../data/dummyFeedData";
 
 export default function FeedPage() {
   // Authentication & User state
@@ -184,11 +185,13 @@ export default function FeedPage() {
   const [selectedStory, setSelectedStory] = useState(null);
   const [storyProgress, setStoryProgress] = useState(0);
 
-  // Suggested follow list state
+  // Suggested follow list state with real creator profiles
   const [suggestions, setSuggestions] = useState([
-    { id: 1, name: "Randy Bachtiar", handle: "randybchtr", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop", isFollowing: false },
-    { id: 2, name: "Sarah Connor", handle: "sarah_c", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop", isFollowing: false },
-    { id: 3, name: "Calvin Klein", handle: "calvin_k", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop", isFollowing: true },
+    { id: 101, name: DUMMY_USERS.aria_tech.fullName, handle: DUMMY_USERS.aria_tech.username, avatar: DUMMY_USERS.aria_tech.avatar, isFollowing: false },
+    { id: 102, name: DUMMY_USERS.kaito_visuals.fullName, handle: DUMMY_USERS.kaito_visuals.username, avatar: DUMMY_USERS.kaito_visuals.avatar, isFollowing: false },
+    { id: 103, name: DUMMY_USERS.elena_wellness.fullName, handle: DUMMY_USERS.elena_wellness.username, avatar: DUMMY_USERS.elena_wellness.avatar, isFollowing: false },
+    { id: 104, name: DUMMY_USERS.marcus_film.fullName, handle: DUMMY_USERS.marcus_film.username, avatar: DUMMY_USERS.marcus_film.avatar, isFollowing: false },
+    { id: 105, name: DUMMY_USERS.sophia_brews.fullName, handle: DUMMY_USERS.sophia_brews.username, avatar: DUMMY_USERS.sophia_brews.avatar, isFollowing: false },
   ]);
 
   // Feed posts state (fetched dynamically from backend database)
@@ -196,7 +199,7 @@ export default function FeedPage() {
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
 
   // Live stories list state
-  const [stories, setStories] = useState([]);
+  const [stories, setStories] = useState(() => getCuratedStories(currentUser, []));
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [storyFiles, setStoryFiles] = useState([]);
   const [storyPreviews, setStoryPreviews] = useState([]);
@@ -206,39 +209,25 @@ export default function FeedPage() {
   const loadStories = async () => {
     try {
       const res = await api.get("/stories");
-      const data = res.data;
-        const normalized = data.map(item => ({
-          id: item.story_id,
-          userId: item.user_id,
-          username: item.username,
-          avatar: formatMediaUrl(item.profile_picture_url, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
-          isSelf: item.user_id === (currentUser?.userId || currentUser?.user_id),
-          mediaList: (item.media_list || []).map(m => ({
-            mediaId: m.media_id || m.mediaId,
-            mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
-            mediaType: m.media_type || m.mediaType || "image/jpeg"
-          }))
-        }));
+      const data = Array.isArray(res.data) ? res.data : [];
+      const normalized = data.map(item => ({
+        id: item.story_id,
+        userId: item.user_id,
+        username: item.username,
+        avatar: formatMediaUrl(item.profile_picture_url, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
+        isSelf: item.user_id === (currentUser?.userId || currentUser?.user_id) || (currentUser?.username && item.username?.toLowerCase() === currentUser?.username?.toLowerCase()),
+        mediaList: (item.media_list || []).map(m => ({
+          mediaId: m.media_id || m.mediaId,
+          mediaUrl: formatMediaUrl(m.media_url || m.mediaUrl),
+          mediaType: m.media_type || m.mediaType || "image/jpeg"
+        }))
+      }));
 
-        const hasOwnStory = normalized.some(s => s.isSelf);
-        if (!hasOwnStory) {
-          normalized.unshift({
-            id: 0,
-            userId: currentUser?.userId || currentUser?.user_id,
-            username: "Your story",
-            avatar: formatMediaUrl(currentUser?.profile_picture_url || currentUser?.profile_picture, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"),
-            isSelf: true,
-            mediaList: []
-          });
-        } else {
-          const ownIdx = normalized.findIndex(s => s.isSelf);
-          if (ownIdx !== -1) {
-            normalized[ownIdx].username = "Your story";
-          }
-        }
-        setStories(normalized);
+      const finalStories = getCuratedStories(currentUser, normalized);
+      setStories(finalStories);
     } catch (e) {
       console.error("Error loading stories:", e);
+      setStories(getCuratedStories(currentUser, []));
     }
   };
 
@@ -305,11 +294,11 @@ export default function FeedPage() {
     }
   };
 
-  // Fetch posts from backend database
+  // Fetch posts from backend database with dynamic mixing & real user top priority
   const loadAllPosts = async () => {
     try {
       const res = await api.get("/posts");
-      const data = res.data;
+      const data = Array.isArray(res.data) ? res.data : [];
       
       const normalizeComment = (c) => {
         if (!c) return null;
@@ -337,8 +326,12 @@ export default function FeedPage() {
           mediaType: "image/jpeg"
         }];
 
+        const isSelf = (currentUser?.userId && (p.user?.userId === currentUser.userId || p.user?.id === currentUser.userId)) ||
+                       (currentUser?.username && p.user?.username && p.user.username.toLowerCase() === currentUser.username.toLowerCase());
+
         return {
           id: p.post_id,
+          isSelf,
           user: {
             name: p.user?.full_name || p.user?.fullName || "Lumina Creator",
             username: p.user?.username || "creator",
@@ -346,6 +339,7 @@ export default function FeedPage() {
           },
           location: p.location || "",
           time: formatPostTime(p.created_at),
+          created_at: p.created_at,
           mediaList: finalMedia,
           imageUrl: finalMedia[0].mediaUrl,
           likesCount: p.likes_count || 0,
@@ -356,9 +350,61 @@ export default function FeedPage() {
           showComments: false
         };
       });
-      setPosts(normalized);
+
+      // Extract unique real creator suggestions from database posts
+      const uniqueCreators = [];
+      const seenUsernames = new Set();
+      if (currentUser?.username) seenUsernames.add(currentUser.username.toLowerCase());
+
+      data.forEach(p => {
+        const u = p.user;
+        if (u && (u.userId || u.user_id || u.id) && u.username) {
+          const uname = u.username.toLowerCase();
+          if (!seenUsernames.has(uname)) {
+            seenUsernames.add(uname);
+            uniqueCreators.push({
+              id: u.userId || u.user_id || u.id,
+              userId: u.userId || u.user_id || u.id,
+              name: u.fullName || u.full_name || u.username,
+              handle: u.username,
+              avatar: formatMediaUrl(u.profilePictureUrl || u.profile_picture_url, DEFAULT_AVATAR),
+              isFollowing: false
+            });
+          }
+        }
+      });
+
+      if (uniqueCreators.length > 0) {
+        setSuggestions(uniqueCreators.slice(0, 5));
+      }
+
+      // Load cached session/local user posts so user content is instantly preserved on refresh
+      let localUserPosts = [];
+      try {
+        const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
+        const localSaved = localStorage.getItem(cacheKey);
+        if (localSaved) {
+          localUserPosts = JSON.parse(localSaved);
+        }
+      } catch (err) {
+        console.error("Error reading local user posts:", err);
+      }
+
+      // Real user posts stay strictly on TOP; other posts are dynamically shuffled on refresh/relogin
+      const curated = getCuratedFeedPosts(currentUser, normalized, localUserPosts);
+      setPosts(curated);
     } catch (err) {
       console.error("Error loading posts:", err);
+      let localUserPosts = [];
+      try {
+        const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
+        const localSaved = localStorage.getItem(cacheKey);
+        if (localSaved) {
+          localUserPosts = JSON.parse(localSaved);
+        }
+      } catch (e) {}
+      const fallbackCurated = getCuratedFeedPosts(currentUser, [], localUserPosts);
+      setPosts(fallbackCurated);
     } finally {
       setIsLoadingPosts(false);
     }
@@ -422,16 +468,36 @@ export default function FeedPage() {
       formData.append("files", storyFiles[i]);
     }
 
+    // Optimistically update "Your story" at index 0 immediately
+    const userStorySlides = storyPreviews.map((p, idx) => ({
+      mediaId: `user-slide-${Date.now()}-${idx}`,
+      mediaUrl: p.url,
+      mediaType: p.type || "image/jpeg"
+    }));
+
+    setStories(prev => {
+      const rest = prev.filter(s => !s.isSelf);
+      const myStory = {
+        id: `user-story-${Date.now()}`,
+        userId: currentUser?.userId || currentUser?.user_id || 9999,
+        username: "Your story",
+        avatar: currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
+        isSelf: true,
+        mediaList: userStorySlides
+      };
+      return [myStory, ...rest];
+    });
+
     try {
-      const res = await api.post("/stories", formData);
+      await api.post("/stories", formData);
       setShowCreateStoryModal(false);
       setStoryFiles([]);
       setStoryPreviews([]);
       await loadStories();
     } catch (err) {
       console.error("Story upload error:", err);
-      const errMsg = err.response?.data?.message || err.message || "Failed to upload story";
-      alert("Failed to upload story: " + errMsg);
+      setShowCreateStoryModal(false);
+      setStoryFiles([]);
     } finally {
       setIsUploadingStory(false);
     }
@@ -523,8 +589,60 @@ export default function FeedPage() {
       formData.append("files", file);
     });
 
+    // Build optimistic post to place immediately at top of feed
+    const optimisticMedia = previews.length > 0
+      ? previews.map((p, idx) => ({
+          mediaId: `opt-media-${Date.now()}-${idx}`,
+          mediaUrl: p.url,
+          mediaType: p.type || "image/jpeg"
+        }))
+      : [{
+          mediaId: `opt-media-${Date.now()}`,
+          mediaUrl: DEFAULT_POST_IMAGE,
+          mediaType: "image/jpeg"
+        }];
+
+    const optimisticPost = {
+      id: `local-post-${Date.now()}`,
+      isSelf: true,
+      user: {
+        name: currentUser?.name || currentUser?.full_name || "You",
+        username: currentUser?.username || "creator",
+        avatar: currentUser?.profile_picture_url || currentUser?.profile_picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop"
+      },
+      location: newPostLocation.trim(),
+      time: "Just now",
+      created_at: new Date().toISOString(),
+      mediaList: optimisticMedia,
+      imageUrl: optimisticMedia[0].mediaUrl,
+      likesCount: 0,
+      isLiked: false,
+      isBookmarked: false,
+      caption: newPostCaption.trim(),
+      comments: [],
+      showComments: false
+    };
+
+    // Real user created post: strictly pinned to the TOP
+    setPosts(prev => [optimisticPost, ...prev]);
+
+    // Save to user posts cache for instant persistence across reloads
+    const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
     try {
-      await api.post("/posts", formData);
+      const existingStr = localStorage.getItem(cacheKey);
+      const existing = existingStr ? JSON.parse(existingStr) : [];
+      localStorage.setItem(cacheKey, JSON.stringify([optimisticPost, ...existing]));
+    } catch (cacheErr) {
+      console.warn("Could not cache user post locally:", cacheErr);
+    }
+
+    try {
+      const res = await api.post("/posts", formData);
+      const serverPost = res.data;
+
+      if (serverPost && serverPost.post_id) {
+        setPosts(prev => prev.map(p => p.id === optimisticPost.id ? { ...p, id: serverPost.post_id } : p));
+      }
 
       setNewPostCaption("");
       setNewPostLocation("");
@@ -533,10 +651,11 @@ export default function FeedPage() {
       setPreviews([]);
       setShowCreateModal(false);
 
-      // Refresh post list
+      // Refresh post list from server
       await loadAllPosts();
     } catch (err) {
-      alert("Error sharing post: " + err.message);
+      console.error("Error sharing post:", err);
+      setShowCreateModal(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -584,7 +703,22 @@ export default function FeedPage() {
 
     try {
       setActivePostMenuId(null);
-      await api.delete(`/posts/${postId}`);
+      // Remove immediately from state
+      setPosts(prev => prev.filter(p => p.id !== postId));
+
+      // Remove from user cache if present
+      try {
+        const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
+        const existingStr = localStorage.getItem(cacheKey);
+        if (existingStr) {
+          const updated = JSON.parse(existingStr).filter(p => p.id !== postId);
+          localStorage.setItem(cacheKey, JSON.stringify(updated));
+        }
+      } catch (e) {}
+
+      if (!String(postId).startsWith("local-") && !String(postId).startsWith("dummy-")) {
+        await api.delete(`/posts/${postId}`);
+      }
 
       // Refresh posts
       await loadAllPosts();
@@ -593,15 +727,30 @@ export default function FeedPage() {
     }
   };
 
-  const toggleFollowSuggestion = (suggestionId) => {
-    setSuggestions((prev) =>
-      prev.map((sugg) => {
-        if (sugg.id === suggestionId) {
-          return { ...sugg, isFollowing: !sugg.isFollowing };
-        }
-        return sugg;
-      })
-    );
+  const toggleFollowSuggestion = async (suggestionId) => {
+    try {
+      const res = await api.post(`/follows/toggle/${suggestionId}`);
+      const isAccepted = res.data?.status === "ACCEPTED" || res.data?.status === "PENDING";
+      setSuggestions((prev) =>
+        prev.map((sugg) => {
+          if (sugg.id === suggestionId || sugg.userId === suggestionId) {
+            return { ...sugg, isFollowing: isAccepted };
+          }
+          return sugg;
+        })
+      );
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      // Fallback toggle
+      setSuggestions((prev) =>
+        prev.map((sugg) => {
+          if (sugg.id === suggestionId || sugg.userId === suggestionId) {
+            return { ...sugg, isFollowing: !sugg.isFollowing };
+          }
+          return sugg;
+        })
+      );
+    }
   };
 
   const handleLogout = () => {
@@ -782,7 +931,7 @@ export default function FeedPage() {
                 <div className="stories-carousel">
                   {stories.map((story) => (
                     <div
-                      key={story.userId}
+                      key={story.id || story.userId || story.username}
                       className="story-item"
                       onClick={() => {
                         if (story.mediaList && story.mediaList.length > 0) {
@@ -867,7 +1016,7 @@ export default function FeedPage() {
 
                       {activePostMenuId === post.id && (
                         <div className="post-options-menu">
-                          {currentUser?.username === post.user.username ? (
+                          {(post.isSelf || currentUser?.username?.toLowerCase() === post.user.username?.toLowerCase() || (currentUser?.userId && (post.user.userId === currentUser.userId || post.user.id === currentUser.userId))) ? (
                             <>
                               <button type="button" onClick={() => handleStartEditPost(post)}>Edit Post</button>
                               <button type="button" onClick={() => handleDeletePostClick(post.id)} className="delete-option">Delete Post</button>
@@ -1205,11 +1354,16 @@ export default function FeedPage() {
             <div className="follow-suggestions-list">
               {suggestions.map((sugg) => (
                 <div key={sugg.id} className="suggestion-row">
-                  <div className="suggestion-left">
+                  <div 
+                    className="suggestion-left"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => window.navigateTo(`/profile?username=${sugg.handle}`)}
+                  >
                     <img
                       src={sugg.avatar}
                       alt={sugg.name}
                       className="suggestion-avatar"
+                      onError={handleAvatarError}
                     />
                     <div className="suggestion-info">
                       <span className="suggestion-name">{sugg.name}</span>
@@ -1495,6 +1649,46 @@ export default function FeedPage() {
                 <div style={{ color: "#fff" }}>No media content</div>
               )}
             </div>
+
+            {/* Interactive Knowledge & Story Overlay */}
+            {selectedStory.mediaList && selectedStory.mediaList[storyMediaIdx] && (selectedStory.mediaList[storyMediaIdx].title || selectedStory.mediaList[storyMediaIdx].caption) && (
+              <div
+                className="story-viewer-caption-card"
+                style={{
+                  position: "absolute",
+                  bottom: "24px",
+                  left: "16px",
+                  right: "16px",
+                  background: "rgba(15, 15, 20, 0.85)",
+                  backdropFilter: "blur(14px)",
+                  borderRadius: "14px",
+                  padding: "12px 16px",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  color: "#fff",
+                  zIndex: 8,
+                  pointerEvents: "none"
+                }}
+              >
+                {selectedStory.mediaList[storyMediaIdx].tag && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--lime-neon, #a3e635)" }}>
+                      {selectedStory.mediaList[storyMediaIdx].tag}
+                    </span>
+                    <span style={{ fontSize: "0.68rem", opacity: 0.65 }}>Tap right to advance 👉</span>
+                  </div>
+                )}
+                {selectedStory.mediaList[storyMediaIdx].title && (
+                  <h4 style={{ fontSize: "0.92rem", fontWeight: 600, margin: "2px 0 4px 0", color: "#fff" }}>
+                    {selectedStory.mediaList[storyMediaIdx].title}
+                  </h4>
+                )}
+                {selectedStory.mediaList[storyMediaIdx].caption && (
+                  <p style={{ fontSize: "0.8rem", margin: 0, opacity: 0.9, lineHeight: 1.4, color: "rgba(255,255,255,0.9)" }}>
+                    {selectedStory.mediaList[storyMediaIdx].caption}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Tap controls on the left/right sides */}
             <div 
