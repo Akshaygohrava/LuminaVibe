@@ -88,6 +88,7 @@ public class DatabaseSeeder implements ApplicationRunner {
                 user = userRepository.findByEmail(email).orElse(null);
             }
 
+            boolean isPriv = "zaranovak_design".equals(username) || "liam_acoustic".equals(username);
             if (user == null) {
                 user = new User();
                 user.setUsername(username);
@@ -97,10 +98,13 @@ public class DatabaseSeeder implements ApplicationRunner {
                 user.setBio(bio);
                 user.setProfilePictureUrl(avatar);
                 user.setIsVerified(true);
-                user.setIsPrivate(false);
+                user.setIsPrivate(isPriv);
                 user.setProfileViews(145);
                 user = userRepository.save(user);
                 logger.info("Created real user: @{}", username);
+            } else if (!Boolean.valueOf(isPriv).equals(user.getIsPrivate())) {
+                user.setIsPrivate(isPriv);
+                user = userRepository.save(user);
             }
             creators.put(username, user);
         }

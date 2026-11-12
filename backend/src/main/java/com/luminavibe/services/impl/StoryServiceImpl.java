@@ -110,14 +110,20 @@ public class StoryServiceImpl implements StoryService {
         // Always include own stories
         creatorIds.add(userId);
 
+        // Keep set of allowed IDs (own + accepted followings)
+        Set<Integer> allowedPrivateViewerIds = new HashSet<>(creatorIds);
+
         // Fetch active stories (own + followed)
         List<Story> activeStories = storyRepository.findByUserUserIdInAndExpiresAtAfterOrderByCreatedAtAsc(creatorIds, LocalDateTime.now());
 
-        // Also include active community stories so the stories carousel is always rich and active
+        // Also include active community stories only if public or followed (privacy rule)
         List<Story> allActive = storyRepository.findByExpiresAtAfterOrderByCreatedAtAsc(LocalDateTime.now());
         Set<Integer> seenStoryIds = activeStories.stream().map(Story::getStoryId).collect(Collectors.toSet());
         for (Story s : allActive) {
-            if (!seenStoryIds.contains(s.getStoryId())) {
+            if (s.getUser() == null) continue;
+            boolean isPrivate = Boolean.TRUE.equals(s.getUser().getIsPrivate());
+            boolean canView = !isPrivate || allowedPrivateViewerIds.contains(s.getUser().getUserId());
+            if (canView && !seenStoryIds.contains(s.getStoryId())) {
                 activeStories.add(s);
                 seenStoryIds.add(s.getStoryId());
             }

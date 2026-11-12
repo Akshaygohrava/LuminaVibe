@@ -43,6 +43,9 @@ public class PostServiceImpl implements PostService {
     private UserRepository userRepository;
 
     @Autowired
+    private com.luminavibe.repositories.FollowRepository followRepository;
+
+    @Autowired
     private ModelMapper modelMapper;
 
     @Autowired
@@ -110,30 +113,82 @@ public class PostServiceImpl implements PostService {
     public List<PostDto> getAllPosts() {
         List<Post> posts = postRepository.findAllByOrderByCreatedAtDesc();
 
-        // If an authenticated user calls getAllPosts, ensure their own posts are strictly prioritized at the top
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Integer viewerId = null;
         if (auth != null && auth.getPrincipal() instanceof User) {
-            User currentUser = (User) auth.getPrincipal();
-            Integer currentUserId = currentUser.getUserId();
-            List<Post> ownPosts = new ArrayList<>();
-            List<Post> otherPosts = new ArrayList<>();
-            for (Post p : posts) {
-                if (p.getUser() != null && p.getUser().getUserId().equals(currentUserId)) {
-                    ownPosts.add(p);
-                } else {
-                    otherPosts.add(p);
-                }
-            }
-            List<Post> combined = new ArrayList<>(ownPosts);
-            combined.addAll(otherPosts);
-            return combined.stream().map(this::convertToDto).collect(Collectors.toList());
+            viewerId = ((User) auth.getPrincipal()).getUserId();
         }
 
-        return posts.stream().map(this::convertToDto).collect(Collectors.toList());
+        // Pre-fetch following IDs with status ACCEPTED for privacy check
+        java.util.Set<Integer> acceptedFollowingIds = new java.util.HashSet<>();
+        if (viewerId != null) {
+            List<com.luminavibe.entities.Follow> follows = followRepository.findByFollowerUserIdAndStatus(viewerId, "ACCEPTED");
+            for (com.luminavibe.entities.Follow f : follows) {
+                if (f.getFollowing() != null) {
+                    acceptedFollowingIds.add(f.getFollowing().getUserId());
+                }
+            }
+        }
+
+        // Privacy filter: no one can see private user's posts until they follow them and are accepted
+        List<Post> visiblePosts = new ArrayList<>();
+        for (Post p : posts) {
+            User author = p.getUser();
+            if (author == null) continue;
+
+            boolean isPrivate = Boolean.TRUE.equals(author.getIsPrivate());
+            boolean isOwn = viewerId != null && viewerId.equals(author.getUserId());
+            boolean isFollowed = viewerId != null && acceptedFollowingIds.contains(author.getUserId());
+
+            if (!isPrivate || isOwn || isFollowed) {
+                visiblePosts.add(p);
+            }
+        }
+
+        // Sorting & Shuffling Rule:
+        // When a user creates a new post, it is at the TOP for all users (posts created within the last 10 minutes)
+        // All older posts (including real users and own past posts) are SHUFFLED dynamically on every refresh/relogin
+        java.time.LocalDateTime newPostCutoff = java.time.LocalDateTime.now().minusMinutes(10);
+        List<Post> brandNewPosts = new ArrayList<>();
+        List<Post> regularPosts = new ArrayList<>();
+
+        for (Post p : visiblePosts) {
+            if (p.getCreatedAt() != null && p.getCreatedAt().isAfter(newPostCutoff)) {
+                brandNewPosts.add(p);
+            } else {
+                regularPosts.add(p);
+            }
+        }
+
+        // Sort brand new posts newest first
+        brandNewPosts.sort((a, b) -> {
+            if (a.getCreatedAt() == null) return 1;
+            if (b.getCreatedAt() == null) return -1;
+            return b.getCreatedAt().compareTo(a.getCreatedAt());
+        });
+
+        // Dynamic shuffle of all regular/community posts so every refresh or relogin mixes them up
+        java.util.Collections.shuffle(regularPosts);
+
+        List<Post> combined = new ArrayList<>(brandNewPosts);
+        combined.addAll(regularPosts);
+
+        return combined.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
     @Override
     public List<PostDto> getPostsByUser(Integer userId) {
+        User targetUser = userRepository.findById(userId).orElse(null);
+        if (targetUser != null && Boolean.TRUE.equals(targetUser.getIsPrivate())) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            Integer viewerId = (auth != null && auth.getPrincipal() instanceof User) ? ((User) auth.getPrincipal()).getUserId() : null;
+            boolean canView = (viewerId != null && (viewerId.equals(userId) || 
+                               followRepository.existsByFollowerUserIdAndFollowingUserIdAndStatus(viewerId, userId, "ACCEPTED")));
+            if (!canView) {
+                return java.util.Collections.emptyList();
+            }
+        }
+
         List<Post> posts = postRepository.findByUserUserIdOrderByCreatedAtDesc(userId);
         return posts.stream().map(this::convertToDto).collect(Collectors.toList());
     }

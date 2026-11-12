@@ -378,32 +378,28 @@ export default function FeedPage() {
         setSuggestions(uniqueCreators.slice(0, 5));
       }
 
-      // Load cached session/local user posts so user content is instantly preserved on refresh
-      let localUserPosts = [];
+      // Check for freshly created post in session
+      let sessionNewPosts = [];
       try {
-        const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
-        const localSaved = localStorage.getItem(cacheKey);
-        if (localSaved) {
-          localUserPosts = JSON.parse(localSaved);
+        const sessionSaved = sessionStorage.getItem("lumina_session_new_post");
+        if (sessionSaved) {
+          sessionNewPosts = [JSON.parse(sessionSaved)];
         }
-      } catch (err) {
-        console.error("Error reading local user posts:", err);
-      }
+      } catch (err) {}
 
-      // Real user posts stay strictly on TOP; other posts are dynamically shuffled on refresh/relogin
-      const curated = getCuratedFeedPosts(currentUser, normalized, localUserPosts);
+      // Brand new posts stay strictly at the TOP; all other posts (including real users) are dynamically shuffled on refresh/relogin
+      const curated = getCuratedFeedPosts(currentUser, normalized, sessionNewPosts);
       setPosts(curated);
     } catch (err) {
       console.error("Error loading posts:", err);
-      let localUserPosts = [];
+      let sessionNewPosts = [];
       try {
-        const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
-        const localSaved = localStorage.getItem(cacheKey);
-        if (localSaved) {
-          localUserPosts = JSON.parse(localSaved);
+        const sessionSaved = sessionStorage.getItem("lumina_session_new_post");
+        if (sessionSaved) {
+          sessionNewPosts = [JSON.parse(sessionSaved)];
         }
       } catch (e) {}
-      const fallbackCurated = getCuratedFeedPosts(currentUser, [], localUserPosts);
+      const fallbackCurated = getCuratedFeedPosts(currentUser, [], sessionNewPosts);
       setPosts(fallbackCurated);
     } finally {
       setIsLoadingPosts(false);
@@ -623,18 +619,13 @@ export default function FeedPage() {
       showComments: false
     };
 
-    // Real user created post: strictly pinned to the TOP
+    // Brand new created post: strictly pinned to the TOP
     setPosts(prev => [optimisticPost, ...prev]);
 
-    // Save to user posts cache for instant persistence across reloads
-    const cacheKey = `lumina_user_posts_${currentUser?.username || "default"}`;
+    // Track newly created post in session until refresh or relogin
     try {
-      const existingStr = localStorage.getItem(cacheKey);
-      const existing = existingStr ? JSON.parse(existingStr) : [];
-      localStorage.setItem(cacheKey, JSON.stringify([optimisticPost, ...existing]));
-    } catch (cacheErr) {
-      console.warn("Could not cache user post locally:", cacheErr);
-    }
+      sessionStorage.setItem("lumina_session_new_post", JSON.stringify(optimisticPost));
+    } catch (cacheErr) {}
 
     try {
       const res = await api.post("/posts", formData);
@@ -1033,13 +1024,13 @@ export default function FeedPage() {
                   <div className="post-media-container">
                     {post.mediaList && post.mediaList.length > 0 ? (
                       post.mediaList.length === 1 ? (
-                        /* Single media view */
-                        post.mediaList[0].mediaType.startsWith("video/") ? (
+                        /* Single media view: full display, no cropping */
+                        post.mediaList[0].mediaType?.startsWith("video/") ? (
                           <video
                             src={post.mediaList[0].mediaUrl}
                             controls
-                            className="post-media-video w-full"
-                            style={{ maxHeight: "520px", objectFit: "cover" }}
+                            playsInline
+                            className="post-media-video"
                           />
                         ) : (
                           <img
@@ -1051,8 +1042,13 @@ export default function FeedPage() {
                           />
                         )
                       ) : (
-                        /* Instagram-style multiple files carousel view */
+                        /* Multi-media carousel view: full display, no cropping */
                         <div className="post-carousel-wrapper">
+                          {/* Slide counter pill badge */}
+                          <div className="carousel-counter-badge">
+                            {(carouselIndices[post.id] || 0) + 1} / {post.mediaList.length}
+                          </div>
+
                           <div
                             className="post-carousel-track"
                             style={{
@@ -1068,19 +1064,18 @@ export default function FeedPage() {
                                 className="post-carousel-slide"
                                 style={{ width: `${100 / post.mediaList.length}%` }}
                               >
-                                {media.mediaType.startsWith("video/") ? (
+                                {media.mediaType?.startsWith("video/") ? (
                                   <video
                                     src={media.mediaUrl}
                                     controls
-                                    className="w-full h-full object-cover"
-                                    style={{ maxHeight: "520px" }}
+                                    playsInline
+                                    className="post-carousel-video"
                                   />
                                 ) : (
                                   <img
                                     src={media.mediaUrl}
                                     alt={`Post slide ${idx + 1}`}
-                                    className="w-full h-full object-cover"
-                                    style={{ maxHeight: "520px" }}
+                                    className="post-carousel-img"
                                     loading="lazy"
                                     onError={handleImageError}
                                   />
@@ -1092,13 +1087,15 @@ export default function FeedPage() {
                           {/* Left Arrow */}
                           {(carouselIndices[post.id] || 0) > 0 && (
                             <button
+                              type="button"
                               className="carousel-nav-btn prev"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setCarouselIndices((prev) => ({
                                   ...prev,
                                   [post.id]: Math.max((prev[post.id] || 0) - 1, 0)
-                                }))
-                              }
+                                }));
+                              }}
                               aria-label="Previous slide"
                             >
                               <ChevronLeft className="size-4" />
@@ -1108,13 +1105,15 @@ export default function FeedPage() {
                           {/* Right Arrow */}
                           {(carouselIndices[post.id] || 0) < post.mediaList.length - 1 && (
                             <button
+                              type="button"
                               className="carousel-nav-btn next"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setCarouselIndices((prev) => ({
                                   ...prev,
                                   [post.id]: Math.min((prev[post.id] || 0) + 1, post.mediaList.length - 1)
-                                }))
-                              }
+                                }));
+                              }}
                               aria-label="Next slide"
                             >
                               <ChevronRight className="size-4" />
@@ -1129,6 +1128,10 @@ export default function FeedPage() {
                                 className={`carousel-dot ${
                                   (carouselIndices[post.id] || 0) === idx ? "active" : ""
                                 }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCarouselIndices((prev) => ({ ...prev, [post.id]: idx }));
+                                }}
                               />
                             ))}
                           </div>
@@ -1481,7 +1484,10 @@ export default function FeedPage() {
                     borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
                   }}
                 >
-                  <span>Select media files...</span>
+                  <span className="flex items-center gap-2 text-xs sm:text-sm">
+                    <ImageIcon className="size-4" />
+                    {selectedFiles.length > 0 ? `${selectedFiles.length} media file(s) selected` : "Select photos or videos..."}
+                  </span>
                   <span className="text-[10px] bg-indigo-600 text-white py-1 px-2.5 rounded-md font-semibold">Browse</span>
                 </button>
 
@@ -1586,17 +1592,15 @@ export default function FeedPage() {
 
       {/* MODAL: STORIES VIEWER */}
       {selectedStory && selectedStory.mediaList && selectedStory.mediaList.length > 0 && (
-        <div className="modal-overlay-bg" onClick={() => setSelectedStory(null)}>
-          <div className="story-viewer-content" onClick={(e) => e.stopPropagation()} style={{ position: "relative", maxWidth: "480px", width: "100%", background: "#000", borderRadius: "16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div className="modal-overlay-bg story-modal-overlay" onClick={() => setSelectedStory(null)}>
+          <div className="story-viewer-content" onClick={(e) => e.stopPropagation()}>
             {/* Story progress ticks */}
-            <div className="story-progress-bar-list" style={{ display: "flex", gap: "4px", padding: "12px 16px", background: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)", position: "absolute", top: 0, left: 0, width: "100%", zIndex: 10 }}>
+            <div className="story-progress-bar-list">
               {selectedStory.mediaList.map((_, idx) => (
-                <div key={idx} className="story-progress-bar-bg" style={{ flex: 1, height: "2.5px", background: "rgba(255,255,255,0.25)", borderRadius: "4px", overflow: "hidden" }}>
+                <div key={idx} className="story-progress-bar-bg">
                   <div
                     className="story-progress-bar-fill"
                     style={{
-                      height: "100%",
-                      background: "#ffffff",
                       width: idx === storyMediaIdx ? `${storyProgress}%` : idx < storyMediaIdx ? "100%" : "0%",
                       transition: idx === storyMediaIdx ? "none" : "width 0.1s linear"
                     }}
@@ -1606,27 +1610,26 @@ export default function FeedPage() {
             </div>
 
             {/* Viewer Header */}
-            <div className="story-viewer-header" style={{ display: "flex", alignItems: "center", justify: "space-between", padding: "16px 16px 8px", background: "linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)", position: "absolute", top: "10px", left: 0, width: "100%", zIndex: 10, color: "#fff" }}>
-              <div className="story-viewer-user" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div className="story-viewer-header">
+              <div className="story-viewer-user">
                 <img
                   src={selectedStory.avatar}
                   alt=""
                   className="story-viewer-avatar"
-                  style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1.5px solid var(--lime-neon)", objectFit: "cover" }}
                   onError={handleAvatarError}
                 />
                 <div>
-                  <div className="story-viewer-name" style={{ fontWeight: 600, fontSize: "0.85rem" }}>{selectedStory.username}</div>
-                  <div className="story-viewer-time" style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.5)" }}>Active Story</div>
+                  <div className="story-viewer-name">{selectedStory.username}</div>
+                  <div className="story-viewer-time">Active Story</div>
                 </div>
               </div>
-              <button className="story-viewer-close" onClick={() => setSelectedStory(null)} style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer" }}>
+              <button className="story-viewer-close" onClick={() => setSelectedStory(null)}>
                 <X className="size-5" />
               </button>
             </div>
 
             {/* Viewer Media */}
-            <div className="story-viewer-media-panel" style={{ flexGrow: 1, display: "flex", alignItems: "center", justify: "center", height: "70vh", minHeight: "450px" }}>
+            <div className="story-viewer-media-panel">
               {selectedStory.mediaList && selectedStory.mediaList[storyMediaIdx] ? (
                 selectedStory.mediaList[storyMediaIdx].mediaType?.startsWith("video/") ? (
                   <video
@@ -1641,7 +1644,6 @@ export default function FeedPage() {
                     src={selectedStory.mediaList[storyMediaIdx].mediaUrl}
                     alt="Story content"
                     className="story-viewer-img"
-                    style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
                     onError={handleImageError}
                   />
                 )
@@ -1652,23 +1654,7 @@ export default function FeedPage() {
 
             {/* Interactive Knowledge & Story Overlay */}
             {selectedStory.mediaList && selectedStory.mediaList[storyMediaIdx] && (selectedStory.mediaList[storyMediaIdx].title || selectedStory.mediaList[storyMediaIdx].caption) && (
-              <div
-                className="story-viewer-caption-card"
-                style={{
-                  position: "absolute",
-                  bottom: "24px",
-                  left: "16px",
-                  right: "16px",
-                  background: "rgba(15, 15, 20, 0.85)",
-                  backdropFilter: "blur(14px)",
-                  borderRadius: "14px",
-                  padding: "12px 16px",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  color: "#fff",
-                  zIndex: 8,
-                  pointerEvents: "none"
-                }}
-              >
+              <div className="story-viewer-caption-card">
                 {selectedStory.mediaList[storyMediaIdx].tag && (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                     <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--lime-neon, #a3e635)" }}>

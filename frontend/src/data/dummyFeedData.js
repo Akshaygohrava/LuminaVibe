@@ -181,8 +181,8 @@ export function getCuratedStories(currentUser, backendStories = []) {
 }
 
 // Combines and orders 100% REAL database posts:
-// Real logged-in user's posts are STRICTLY PINNED TO THE TOP (newest first).
-// All other real posts from PostgreSQL are dynamically shuffled on refresh/relogin for fresh variety!
+// When any user creates a new post, it stays at the TOP until refresh / relogin.
+// All other posts (including real users and past posts) are dynamically shuffled on refresh/relogin for fresh variety!
 export function getCuratedFeedPosts(currentUser, backendPosts = [], localUserPosts = []) {
   const userIdentifier = currentUser?.userId || currentUser?.user_id;
   const currentUsername = currentUser?.username ? currentUser.username.toLowerCase() : "";
@@ -194,42 +194,46 @@ export function getCuratedFeedPosts(currentUser, backendPosts = [], localUserPos
     return false;
   };
 
-  const realUserPosts = [];
-  const otherRealPosts = [];
+  const allPosts = [];
   const seenPostIds = new Set();
+  const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
 
-  // 1. Process backend database posts (100% real PostgreSQL rows)
-  backendPosts.forEach(p => {
-    const pId = String(p.id);
-    if (!seenPostIds.has(pId)) {
-      seenPostIds.add(pId);
-      if (isUserPost(p)) {
-        realUserPosts.push({ ...p, isSelf: true });
-      } else {
-        otherRealPosts.push({ ...p, isSelf: false });
-      }
-    }
-  });
-
-  // 2. Process optimistic session posts created by the current user
+  // 1. Process optimistic / newly created session posts from local session
+  const newlyCreatedPosts = [];
   localUserPosts.forEach(p => {
     const pId = String(p.id);
     if (!seenPostIds.has(pId)) {
       seenPostIds.add(pId);
-      realUserPosts.unshift({ ...p, isSelf: true });
+      newlyCreatedPosts.push({ ...p, isSelf: true, isNew: true });
     }
   });
 
-  // 3. Sort real user's posts by newest first
-  realUserPosts.sort((a, b) => {
+  // 2. Process backend database posts (100% real PostgreSQL rows)
+  backendPosts.forEach(p => {
+    const pId = String(p.id);
+    if (!seenPostIds.has(pId)) {
+      seenPostIds.add(pId);
+      const isSelf = isUserPost(p);
+      const postTime = p.created_at ? new Date(p.created_at).getTime() : 0;
+      
+      // If created very recently (within 10 minutes) or flagged as new
+      if (p.isNewlyCreated || (postTime > tenMinutesAgo && isSelf)) {
+        newlyCreatedPosts.push({ ...p, isSelf });
+      } else {
+        allPosts.push({ ...p, isSelf });
+      }
+    }
+  });
+
+  // 3. Sort newly created posts by newest first (strictly at TOP)
+  newlyCreatedPosts.sort((a, b) => {
     const timeA = a.created_at ? new Date(a.created_at).getTime() : Date.now();
     const timeB = b.created_at ? new Date(b.created_at).getTime() : Date.now();
     return timeB - timeA;
   });
 
-  // 4. Dynamically shuffle other real posts so every refresh/relogin feels alive
-  const shuffledOthers = shuffleArray(otherRealPosts);
+  // 4. Dynamically shuffle all other posts (even real users & past user posts) so every refresh/relogin is unique!
+  const shuffledAll = shuffleArray(allPosts);
 
-  // Real user posts ALWAYS strictly at the TOP, followed by dynamic mix of real community posts
-  return [...realUserPosts, ...shuffledOthers];
+  return [...newlyCreatedPosts, ...shuffledAll];
 }
