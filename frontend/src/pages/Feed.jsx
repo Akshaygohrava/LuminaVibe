@@ -23,6 +23,7 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Image as ImageIcon,
 } from "lucide-react";
 import "../assets/styles/Feed.css";
 import logoIcon from "../assets/icons/logo-icon.jpg";
@@ -964,11 +965,12 @@ export default function FeedPage() {
           {/* Posts Feed Vertical List */}
           <section className="feed-posts-list">
             {posts.map((post) => {
+              const postCaption = post.caption || "";
               const isExpanded = !!expandedCaptions[post.id];
-              const shouldShowMoreButton = post.caption.length > 90;
+              const shouldShowMoreButton = postCaption.length > 90;
               const displayedCaption = isExpanded
-                ? post.caption
-                : post.caption.substring(0, 90);
+                ? postCaption
+                : postCaption.substring(0, 90);
 
               return (
                 <article key={post.id} className="feed-card-item">

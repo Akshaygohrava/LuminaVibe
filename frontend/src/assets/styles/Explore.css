@@ -28,6 +28,9 @@
   .explore-main-column {
     gap: 16px;
     padding: 0 16px;
+    overflow-x: clip;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -35,6 +38,9 @@
   .explore-main-column {
     gap: 14px;
     padding: 0 12px;
+    overflow-x: clip;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -42,6 +48,9 @@
   .explore-main-column {
     gap: 12px;
     padding: 0 8px;
+    overflow-x: clip;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -49,7 +58,7 @@
 .explore-search-header {
   position: sticky;
   top: 0;
-  background: rgba(5, 5, 8, 0.85);
+  background: rgba(5, 5, 8, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 14px 0;
@@ -61,32 +70,29 @@
 @media (max-width: 767px) {
   .explore-search-header {
     position: sticky;
-    top: 60px;
-    background: rgba(5, 5, 8, 0.92);
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    background: #050508;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    padding: 10px 0;
+    padding: 10px 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     margin: 0 -16px;
-    padding-left: 16px;
-    padding-right: 16px;
-    z-index: 25;
+    z-index: 40;
+    box-sizing: border-box;
   }
 }
 
 @media (max-width: 480px) {
   .explore-search-header {
     margin: 0 -12px;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding: 10px 12px;
   }
 }
 
 @media (max-width: 360px) {
   .explore-search-header {
     margin: 0 -8px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding: 8px 8px;
   }
 }
 
@@ -94,11 +100,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #111118;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1.5rem;
   padding: 12px 18px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.7);
   transition: all 0.3s ease;
   width: 100%;
   box-sizing: border-box;
